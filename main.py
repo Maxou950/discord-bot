@@ -3,25 +3,19 @@ import time
 import random
 import asyncio
 import discord
-from datetime import timedelta, datetime
+from datetime import timedelta
 from dotenv import load_dotenv
 from discord.ext import commands
 from keep_alive import keep_alive
-keep_alive()  # ✅ Pour Replit / UptimeRobot
 
-# ───────────────────────────────────────────────
-# CONFIGURATION
-# ───────────────────────────────────────────────
+keep_alive()  # pour Render
+
+# ─────────────── CONFIGURATION ───────────────
 load_dotenv()
 TOKEN = os.getenv("TOKEN")
 PARTENARIAT_CHANNEL_ID = 1312467445881114635
 BOT_WHITELIST = []
-VERIFY_MESSAGE_ID = 1389351508163694795
-NON_VERIF_ROLE_NAME = "Non vérifié"
 
-# ───────────────────────────────────────────────
-# INTENTS & BOT
-# ───────────────────────────────────────────────
 intents = discord.Intents.default()
 intents.messages = True
 intents.guilds = True
@@ -30,16 +24,12 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
 
-# ───────────────────────────────────────────────
-# ANTI-SPAM
-# ───────────────────────────────────────────────
+# ─────────────── ANTI-SPAM ───────────────
 user_message_count = {}
 spam_threshold = 5
 interval = 5
 
-# ───────────────────────────────────────────────
-# ÉVÉNEMENTS
-# ───────────────────────────────────────────────
+# ─────────────── EVENTS ───────────────
 @bot.event
 async def on_ready():
     print(f"✅ Connecté en tant que {bot.user.name}")
@@ -51,44 +41,6 @@ async def on_member_join(member):
             await member.kick(reason="Bot non-whitelisté")
         except Exception as e:
             print(f"[kick bot] {e}")
-        return
-
-    role = discord.utils.get(member.guild.roles, name=NON_VERIF_ROLE_NAME)
-    if role:
-        try:
-            await member.add_roles(role)
-            print(f"[+] {member.name} a reçu le rôle 'Non vérifié'")
-        except Exception as e:
-            print(f"[add role] {e}")
-
-@bot.event
-async def on_raw_reaction_add(payload):
-    if payload.message_id != VERIFY_MESSAGE_ID or str(payload.emoji) != "✅":
-        return
-
-    guild = bot.get_guild(payload.guild_id)
-    member = guild.get_member(payload.user_id)
-    if member is None or member.bot:
-        return
-
-    role = discord.utils.get(guild.roles, name="Non vérifié")
-    if role in member.roles:
-        await member.remove_roles(role)
-        try:
-            await member.send("✅ Vérification réussie, bienvenue sur le serveur !")
-        except:
-            pass
-
-@bot.command()
-@commands.has_permissions(administrator=True)
-async def setup_verification(ctx):
-    msg = await ctx.send("👋 Bienvenue ! Clique sur ✅ pour accéder au serveur.")
-    await msg.add_reaction("✅")
-    embed = discord.Embed(
-        description=f"🆗 Message de vérification envoyé ! Copie son ID : `{msg.id}` et remplace-le dans `VERIFY_MESSAGE_ID`.",
-        color=discord.Color.blurple()
-    )
-    await ctx.send(embed=embed)
 
 @bot.event
 async def on_message(message):
@@ -124,9 +76,7 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
-# ───────────────────────────────────────────────
-# COMMANDES MODÉRATION
-# ───────────────────────────────────────────────
+# ─────────────── COMMANDES MODÉRATION ───────────────
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def lockdown(ctx):
@@ -214,9 +164,7 @@ async def unmute(ctx, membre: discord.Member):
     )
     await ctx.send(embed=embed)
 
-# ───────────────────────────────────────────────
-# COMMANDES FUN
-# ───────────────────────────────────────────────
+# ─────────────── COMMANDES FUN ───────────────
 ROASTS = [
     "frérot t’es éclaté au sol, même en rêve tu rates tes combos.",
     "on dirait que t’as été nerfé à la naissance.",
@@ -248,17 +196,14 @@ async def insulte_random(ctx):
 @bot.command()
 async def cat(ctx):
     embed = discord.Embed(
-        title="😺 Chat pipi",
-        description="J'te pisse dessus mdrrrrr",
+        title="😺 Chat sacré",
+        description="Un chat si expressif...",
         color=discord.Color.orange()
     )
-    embed.set_image(url="https://media.tenor.com/Bg3ShfbkKJwAAAAC/rigby-cat-rigby.gif")  
+    embed.set_image(url="https://media1.tenor.com/m/Bg3ShfbkKJwAAAAd/rigby-cat-rigby.gif")
     await ctx.send(embed=embed)
 
-
-# ───────────────────────────────────────────────
-# HELP
-# ───────────────────────────────────────────────
+# ─────────────── HELP ───────────────
 @bot.command(name="help")
 async def help_command(ctx):
     e = discord.Embed(title="🛡️ Commandes du bot", color=discord.Color.blue())
@@ -269,11 +214,10 @@ async def help_command(ctx):
     e.add_field(name="🧹 !clear_user @membre", value="Supprimer messages d'un membre", inline=False)
     e.add_field(name="🤬 !insulte @membre", value="Envoie une insulte fun", inline=False)
     e.add_field(name="🎯 !insulte_random", value="Roast un membre au hasard", inline=False)
+    e.add_field(name="🐈 !cat", value="Affiche un chat rigolo", inline=False)
     await ctx.send(embed=e)
 
-# ───────────────────────────────────────────────
-# LANCEMENT AVEC RELANCE AUTO + KEEP ALIVE
-# ───────────────────────────────────────────────
+# ─────────────── LANCEMENT ───────────────
 while True:
     try:
         bot.run(TOKEN)
