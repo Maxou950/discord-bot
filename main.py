@@ -200,6 +200,11 @@ async def cat(ctx):
         description="Un chat si expressif...",
         color=discord.Color.orange()
     )
+    # Utilise un lien d’image fiable
+    embed.set_image(url="https://media1.tenor.com/m/Bg3ShfbkKJwAAAAC/rigby-cat-rigby.gif")
+    await ctx.send(embed=embed)
+
+    )
     embed.set_image(url="https://media.tenor.com/Bg3ShfbkKJwAAAAC/rigby-cat-rigby.gif")  # ✅ lien direct
     await ctx.send(embed=embed)
     )
