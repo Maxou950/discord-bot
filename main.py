@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from discord.ext import commands
 from keep_alive import keep_alive
 
-keep_alive()  # pour Render
+keep_alive()
 
 # ─────────────── CONFIGURATION ───────────────
 load_dotenv()
@@ -171,6 +171,8 @@ ROASTS = [
     "tu joues comme si t’avais des moufles sur le clavier.",
     "même les bots ont pitié quand ils te voient jouer.",
     "ta présence baisse le MMR de tout le serveur."
+    "arrache ta tante.",
+    "même yannis a un meilleur niveau que toi"
 ]
 
 @bot.command()
