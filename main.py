@@ -1,3 +1,4 @@
+
 import os
 import time
 import random
@@ -73,6 +74,12 @@ async def on_message(message):
             await message.channel.send(embed=embed)
         except Exception as e:
             print(f"[delete link] {e}")
+
+    if message.content.lower().strip().endswith("quoi"):
+        try:
+            await message.reply("feur", mention_author=False)
+        except Exception as e:
+            print(f"[feur] {e}")
 
     await bot.process_commands(message)
 
@@ -164,7 +171,7 @@ async def unmute(ctx, membre: discord.Member):
     )
     await ctx.send(embed=embed)
 
-# ─────────────── COMMANDES FUN ───────────────
+# ─────────────── FUN COMMANDES ───────────────
 ROASTS = [
     "frérot t’es éclaté au sol, même en rêve tu rates tes combos.",
     "on dirait que t’as été nerfé à la naissance.",
