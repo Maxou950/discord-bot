@@ -74,9 +74,14 @@ async def on_message(message):
         except Exception as e:
             print(f"[delete link] {e}")
 
-    if message.content.lower().strip().endswith("quoi"):
+    msg = message.content.lower()
+    if (
+        "quoi" in msg
+        and not any(x in msg for x in ["n'importe quoi", "quoiqu", "pourquoi", "parce que", "avec quoi", "sans quoi"])
+        and msg.strip().endswith("?")
+    ):
         try:
-            await message.reply("feur", mention_author=False)
+            await message.channel.send("feur")
         except Exception as e:
             print(f"[feur] {e}")
 
@@ -111,7 +116,8 @@ async def ban(ctx, membre: discord.Member, *, reason=""):
     await membre.ban(reason=reason)
     embed = discord.Embed(
         title="🔨 Bannissement",
-        description=f"{membre.mention} a été banni.\n**Raison :** {reason}",
+        description=f"{membre.mention} a été banni.
+**Raison :** {reason}",
         color=discord.Color.red()
     )
     embed.set_footer(text=f"Banni par {ctx.author}")
@@ -123,7 +129,8 @@ async def kick(ctx, membre: discord.Member, *, reason=""):
     await membre.kick(reason=reason)
     embed = discord.Embed(
         title="👢 Expulsion",
-        description=f"{membre.mention} a été expulsé.\n**Raison :** {reason}",
+        description=f"{membre.mention} a été expulsé.
+**Raison :** {reason}",
         color=discord.Color.orange()
     )
     embed.set_footer(text=f"Kické par {ctx.author}")
@@ -170,7 +177,6 @@ async def unmute(ctx, membre: discord.Member):
     )
     await ctx.send(embed=embed)
 
-# ─────────────── FUN COMMANDES ───────────────
 ROASTS = [
     "frérot t’es éclaté au sol, même en rêve tu rates tes combos.",
     "on dirait que t’as été nerfé à la naissance.",
@@ -211,7 +217,6 @@ async def cat(ctx):
     embed.set_image(url="https://media.tenor.com/Bg3ShfbkKJwAAAAC/rigby-cat-rigby.gif")
     await ctx.send(embed=embed)
 
-# ─────────────── HELP ───────────────
 @bot.command(name="help")
 async def help_command(ctx):
     e = discord.Embed(title="🛡️ Commandes du bot", color=discord.Color.blue())
@@ -225,7 +230,6 @@ async def help_command(ctx):
     e.add_field(name="🐈 !cat", value="Affiche un chat rigolo", inline=False)
     await ctx.send(embed=e)
 
-# ─────────────── LANCEMENT ───────────────
 while True:
     try:
         bot.run(TOKEN)
