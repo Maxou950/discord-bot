@@ -116,7 +116,7 @@ async def ban(ctx, membre: discord.Member, *, reason=""):
     await membre.ban(reason=reason)
     embed = discord.Embed(
         title="🔨 Bannissement",
-        description=f"{membre.mention} a été banni.
+        description=f"{membre.mention} a été banni.",
 **Raison :** {reason}",
         color=discord.Color.red()
     )
