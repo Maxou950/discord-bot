@@ -170,7 +170,7 @@ ROASTS = [
     "on dirait que t’as été nerfé à la naissance.",
     "tu joues comme si t’avais des moufles sur le clavier.",
     "même les bots ont pitié quand ils te voient jouer.",
-    "ta présence baisse le MMR de tout le serveur."
+    "ta présence baisse le MMR de tout le serveur.",
     "arrache ta tante.",
     "même yannis a un meilleur niveau que toi"
 ]
