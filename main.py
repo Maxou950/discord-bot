@@ -46,12 +46,7 @@ async def on_member_join(member):
 async def on_message(message):
     if message.author.bot:
         return
-
-    # Réponse automatique à "quoi"
-    if "quoi" in message.content.lower():
-        await message.channel.send("feur")
-        return
-
+        
     uid = message.author.id
     now = asyncio.get_event_loop().time()
     user_message_count.setdefault(uid, []).append(now)
