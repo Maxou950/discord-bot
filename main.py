@@ -14,7 +14,7 @@ keep_alive()
 load_dotenv()
 TOKEN = os.getenv("TOKEN")
 PARTENARIAT_CHANNEL_ID = 1312467445881114635
-BOT_WHITELIST = [302050872383242240]
+BOT_WHITELIST = ["302050872383242240"]
 
 intents = discord.Intents.default()
 intents.messages = True
