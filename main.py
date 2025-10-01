@@ -14,7 +14,10 @@ keep_alive()
 load_dotenv()
 TOKEN = os.getenv("TOKEN")
 PARTENARIAT_CHANNEL_ID = 1312467445881114635
-BOT_WHITELIST = ["302050872383242240"]
+
+# ✅ Utiliser des ENTiers, pas des strings
+DISBOARD_ID = 302050872383242240
+BOT_WHITELIST = {DISBOARD_ID}  # set d'ints, plus efficace pour les recherches
 
 intents = discord.Intents.default()
 intents.messages = True
@@ -36,11 +39,20 @@ async def on_ready():
 
 @bot.event
 async def on_member_join(member):
+    # Petit log pour vérifier l'ID du bot qui rejoint
+    try:
+        print(f"[DEBUG] Join: {member} | id={member.id} | bot={member.bot}")
+    except Exception:
+        pass
+
     if member.bot and member.id not in BOT_WHITELIST:
         try:
             await member.kick(reason="Bot non-whitelisté")
+            print(f"[INFO] Bot {member} expulsé (non whitelisté)")
         except Exception as e:
             print(f"[kick bot] {e}")
+    elif member.bot:
+        print(f"[INFO] Bot whitelisté autorisé: {member} (id={member.id})")
 
 @bot.event
 async def on_message(message):
