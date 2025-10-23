@@ -217,6 +217,17 @@ async def cat(ctx):
     embed.set_image(url="https://media.tenor.com/Bg3ShfbkKJwAAAAC/rigby-cat-rigby.gif")
     await ctx.send(embed=embed)
 
+@bot.command()
+async def skillissue(ctx):
+    embed = discord.Embed(
+        title="💢 Skill Issue",
+        description="Un manque de compétence détecté...",
+        color=discord.Color.red()
+    )
+    file = discord.File("image4.png", filename="image4.png")
+    embed.set_image(url="attachment://image4.png")
+    await ctx.send(file=file, embed=embed)
+
 # ─────────────── HELP ───────────────
 @bot.command(name="help")
 async def help_command(ctx):
