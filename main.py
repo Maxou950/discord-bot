@@ -21,7 +21,7 @@ BOT_WHITELIST = {DISBOARD_ID}  # set d'ints, plus efficace pour les recherches
 
 # 🚫 Utilisateurs blacklistés (empêchés de rejoindre : kick auto)
 BLACKLIST_USERS = {
-    1175143594919731291,
+    #1175143594919731291,
 }
 
 intents = discord.Intents.default()
