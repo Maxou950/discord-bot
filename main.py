@@ -19,6 +19,11 @@ PARTENARIAT_CHANNEL_ID = 1312467445881114635
 DISBOARD_ID = 302050872383242240
 BOT_WHITELIST = {DISBOARD_ID}  # set d'ints, plus efficace pour les recherches
 
+# 🚫 Utilisateurs blacklistés (empêchés de rejoindre : kick auto)
+BLACKLIST_USERS = {
+    # Exemple : 123456789012345678,
+}
+
 intents = discord.Intents.default()
 intents.messages = True
 intents.guilds = True
@@ -39,12 +44,22 @@ async def on_ready():
 
 @bot.event
 async def on_member_join(member):
-    # Petit log pour vérifier l'ID du bot qui rejoint
+    # Petit log pour vérifier l'ID du membre qui rejoint
     try:
         print(f"[DEBUG] Join: {member} | id={member.id} | bot={member.bot}")
     except Exception:
         pass
 
+    # ─────────────── BLACKLIST UTILISATEURS (anti-join) ───────────────
+    if member.id in BLACKLIST_USERS:
+        try:
+            await member.kick(reason="Utilisateur blacklisté (anti-join)")
+            print(f"[BLACKLIST] {member} expulsé (blacklist join)")
+            return
+        except Exception as e:
+            print(f"[blacklist kick error] {e}")
+
+    # ─────────────── GESTION DES BOTS ───────────────
     if member.bot and member.id not in BOT_WHITELIST:
         try:
             await member.kick(reason="Bot non-whitelisté")
@@ -56,6 +71,10 @@ async def on_member_join(member):
 
 @bot.event
 async def on_message(message):
+    # Si on veut ignorer totalement les messages d'utilisateurs blacklistés (optionnel)
+    # if message.author.id in BLACKLIST_USERS:
+    #     return
+
     if message.author.bot:
         return
         
@@ -176,6 +195,27 @@ async def unmute(ctx, membre: discord.Member):
     )
     await ctx.send(embed=embed)
 
+# ─────────────── COMMANDES GESTION BLACKLIST (ANTI-JOIN) ───────────────
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def add_blacklist(ctx, membre: discord.Member):
+    BLACKLIST_USERS.add(membre.id)
+    await ctx.send(f"🚫 {membre.mention} a été **ajouté** à la blacklist (anti-join).")
+
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def remove_blacklist(ctx, membre: discord.Member):
+    BLACKLIST_USERS.discard(membre.id)
+    await ctx.send(f"✅ {membre.mention} a été **retiré** de la blacklist (anti-join).")
+
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def show_blacklist(ctx):
+    if not BLACKLIST_USERS:
+        return await ctx.send("✅ La blacklist (anti-join) est **vide**.")
+    noms = [f"<@{uid}>" for uid in BLACKLIST_USERS]
+    await ctx.send("🚫 **Blacklist (anti-join) :**\n" + "\n".join(noms))
+
 # ─────────────── COMMANDES FUN ───────────────
 ROASTS = [
     "frérot t’es éclaté au sol, même en rêve tu rates tes combos.",
@@ -237,9 +277,10 @@ async def help_command(ctx):
     e.add_field(name="🔇 !mute / 🔊 !unmute", value="Timeout (mute) ou unmute un membre", inline=False)
     e.add_field(name="🧹 !clear <n>", value="Supprimer n messages", inline=False)
     e.add_field(name="🧹 !clear_user @membre", value="Supprimer messages d'un membre", inline=False)
+    e.add_field(name="🚫 Blacklist (anti-join)", value="!add_blacklist @membre | !remove_blacklist @membre | !show_blacklist", inline=False)
     e.add_field(name="🤬 !insulte @membre", value="Envoie une insulte fun", inline=False)
     e.add_field(name="🎯 !insulte_random", value="Roast un membre au hasard", inline=False)
-    e.add_field(name="🐈 !cat", value="Affiche un chat rigolo", inline=False)
+    e.add_field(name="🐈 !cat / 💢 !skillissue", value="Fun/Images", inline=False)
     await ctx.send(embed=e)
 
 # ─────────────── LANCEMENT ───────────────
