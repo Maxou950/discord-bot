@@ -264,9 +264,12 @@ async def skillissue(ctx):
         description="Un manque de compétence détecté...",
         color=discord.Color.red()
     )
+
     file = discord.File("image4.png", filename="image4.png")
     embed.set_image(url="attachment://image4.png")
-    await ctx.send(file=file, embed=embed)
+
+    # Envoi dans un seul message
+    await ctx.send(embed=embed, file=file)
 
 # ─────────────── HELP ───────────────
 @bot.command(name="help")
