@@ -15,7 +15,7 @@ load_dotenv()
 TOKEN = os.getenv("TOKEN")
 PARTENARIAT_CHANNEL_ID = 1312467445881114635
 
-# ✅ Utiliser des ENTiers, pas des strings
+# ✅ Utiliser des Entiers, pas des strings
 DISBOARD_ID = 302050872383242240
 MAKEITAQUOTE_ID = 949479338275913799
 BOT_WHITELIST = {
@@ -222,13 +222,13 @@ async def show_blacklist(ctx):
 
 # ─────────────── COMMANDES FUN ───────────────
 ROASTS = [
-    "frérot t’es éclaté au sol, même en rêve tu rates tes combos.",
-    "on dirait que t’as été nerfé à la naissance.",
+    "Skillisue.",
+    "Tu fais peur à voir bro.",
     "tu joues comme si t’avais des moufles sur le clavier.",
     "même les bots ont pitié quand ils te voient jouer.",
-    "ta présence baisse le MMR de tout le serveur.",
+    "Trickshot dans ton père sah.",
     "arrache ta tante.",
-    "même Yannis a un meilleur niveau que toi."
+    "Va niquer ta mère toi et la roue"
 ]
 
 @bot.command()
