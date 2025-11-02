@@ -18,9 +18,11 @@ PARTENARIAT_CHANNEL_ID = 1312467445881114635
 # ✅ Utiliser des Entiers, pas des strings
 DISBOARD_ID = 302050872383242240
 MAKEITAQUOTE_ID = 949479338275913799
+FLAVIBOT_ID = 684773505157431347
 BOT_WHITELIST = {
     DISBOARD_ID,
-    MAKEITAQUOTE_ID
+    MAKEITAQUOTE_ID,
+    FLAVIBOT_ID
 }  # set d'ints, plus efficace pour les recherches
 
 # 🚫 Utilisateurs blacklistés (empêchés de rejoindre : kick auto)
