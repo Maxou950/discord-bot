@@ -278,6 +278,44 @@ async def skillissue(ctx):
 
     # Envoi dans un seul message
     await ctx.send(embed=embed, file=file)
+    
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def roulette(ctx, *membres: discord.Member):
+    """Ban Gambling : mute aléatoirement un des joueurs pendant 10 minutes."""
+
+    # Vérif de base : au moins 2 joueurs
+    if len(membres) < 2:
+        return await ctx.send("❌ Il faut au moins **2 joueurs mentionnés** pour lancer une roulette russe.\nEx : `!roulette @joueur1 @joueur2 @joueur3`")
+
+    # On enlève les bots de la liste
+    participants = [m for m in membres if not m.bot]
+
+    if len(participants) < 2:
+        return await ctx.send("❌ Les bots ne jouent pas. Mentionne au moins **2 humains**.")
+
+    # On choisit le perdant
+    perdant = random.choice(participants)
+
+    try:
+        # Mute 10 minutes (600 secondes)
+        await perdant.timeout(timedelta(minutes=10), reason=f"Perdant à la roulette russe (par {ctx.author})")
+    except Exception as e:
+        print(f"[roulette timeout] {e}")
+        return await ctx.send(f"⚠️ Impossible de mute {perdant.mention}. Vérifie mes permissions (timeout / modérer les membres).")
+
+    # Embed de résultat
+    embed = discord.Embed(
+        title="🔫 Roulette russe",
+        description=(
+            "Participants : " + ", ".join(m.mention for m in participants) + "\n\n"
+            f"💥 **Perdant : {perdant.mention}**\n"
+            "Il est mute pendant **10 minutes**."
+        ),
+        color=discord.Color.dark_red()
+    )
+    embed.set_footer(text=f"Lancée par {ctx.author}", icon_url=getattr(ctx.author.avatar, 'url', discord.Embed.Empty))
+    await ctx.send(embed=embed)
 
 # ─────────────── HELP ───────────────
 @bot.command(name="help")
