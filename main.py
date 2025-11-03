@@ -230,7 +230,10 @@ ROASTS = [
     "même les bots ont pitié quand ils te voient jouer.",
     "Trickshot dans ton père sah.",
     "arrache ta tante.",
-    "Va niquer ta mère toi et la roue"
+    "Va niquer ta mère toi et la roue",
+    "Mimi va niquer ta mère sale tana",
+    "On préfère mimi à toi (c'est quelque chose sah)",
+    "Krakotte est roux"
 ]
 
 @bot.command()
