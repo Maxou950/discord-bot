@@ -232,8 +232,7 @@ ROASTS = [
     "arrache ta tante.",
     "Va niquer ta mère toi et la roue",
     "Mimi va niquer ta mère sale tana",
-    "On préfère mimi à toi (c'est quelque chose sah)",
-    "Krakotte est roux"
+    "On préfère mimi à toi (c'est quelque chose sah)"
 ]
 
 @bot.command()
