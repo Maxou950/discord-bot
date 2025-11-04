@@ -300,19 +300,27 @@ async def roulette(ctx, *membres: discord.Member):
     # On choisit le perdant
     perdant = random.choice(participants)
 
-    try:
+        try:
         # Mute 10 minutes
         await perdant.timeout(
             timedelta(minutes=10),
             reason=f"Perdant à la roulette russe (par {ctx.author})"
         )
+    except discord.errors.HTTPException as e:
+        # Cas Discord qui renvoie une "erreur" vide alors que c'est bien appliqué
+        if e.status == 204:
+            pass  # Pas grave, le mute est appliqué quand même
+        else:
+            print(f"[roulette timeout] {e}")
+            return await ctx.send(
+                f"⚠️ Impossible de mute {perdant.mention}. Vérifie mes permissions."
+            )
     except Exception as e:
         print(f"[roulette timeout] {e}")
         return await ctx.send(
-            f"⚠️ Impossible de mute {perdant.mention}. "
-            "Vérifie mes permissions (Timeout / Modérer les membres)."
+            f"⚠️ Erreur inattendue pendant le mute : {e}"
         )
-
+        
     # Embed de résultat
     embed = discord.Embed(
         title="🔫 Roulette russe",
