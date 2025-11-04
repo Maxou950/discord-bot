@@ -300,7 +300,7 @@ async def roulette(ctx, *membres: discord.Member):
     # On choisit le perdant
     perdant = random.choice(participants)
 
-        try:
+    try:
         # Mute 10 minutes
         await perdant.timeout(
             timedelta(minutes=10),
@@ -320,7 +320,7 @@ async def roulette(ctx, *membres: discord.Member):
         return await ctx.send(
             f"⚠️ Erreur inattendue pendant le mute : {e}"
         )
-        
+
     # Embed de résultat
     embed = discord.Embed(
         title="🔫 Roulette russe",
@@ -343,23 +343,6 @@ async def roulette(ctx, *membres: discord.Member):
         f"💥 {perdant.mention} a perdu la roulette russe ! "
         "Il est réduit au silence pendant 10 minutes 😈"
     )
-
-
-# 🔔 Gestion des erreurs de la commande roulette
-@roulette.error
-async def roulette_error(ctx, error):
-    if isinstance(error, commands.MissingPermissions):
-        return await ctx.send("❌ Tu n'as pas la permission d'utiliser cette commande (admin requis).")
-
-    if isinstance(error, commands.BadArgument):
-        return await ctx.send(
-            "❌ Je n'ai pas réussi à comprendre les joueurs.\n"
-            "Vérifie que tu as bien mentionné les membres : `!roulette @joueur1 @joueur2`"
-        )
-
-    # Autres erreurs inattendues
-    print(f"[roulette error] {error}")
-    await ctx.send("⚠️ Une erreur inattendue est survenue avec la commande `!roulette`.")
 
 # ─────────────── HELP ───────────────
 @bot.command(name="help")
