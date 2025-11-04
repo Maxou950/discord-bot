@@ -315,7 +315,12 @@ async def roulette(ctx, *membres: discord.Member):
         color=discord.Color.dark_red()
     )
     embed.set_footer(text=f"Lancée par {ctx.author}", icon_url=getattr(ctx.author.avatar, 'url', discord.Embed.Empty))
+
+    # Envoi de l'embed
     await ctx.send(embed=embed)
+
+    # 💬 Message clair dans le salon
+    await ctx.send(f"💥 {perdant.mention} a perdu la roulette russe ! Il est réduit au silence pendant 10 minutes 😈")
 
 # ─────────────── HELP ───────────────
 @bot.command(name="help")
