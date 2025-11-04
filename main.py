@@ -344,6 +344,37 @@ async def roulette(ctx, *membres: discord.Member):
         "Il est réduit au silence pendant 10 minutes 😈"
     )
 
+@bot.command(name="Nahidwin")
+async def nahidwin(ctx):
+    folder = "images"  # dossier dans ton repo
+    # On récupère tous les fichiers image du dossier
+    try:
+        fichiers = [
+            f for f in os.listdir(folder)
+            if f.lower().endswith((".png", ".jpg", ".jpeg", ".gif", ".webp"))
+        ]
+    except FileNotFoundError:
+        return await ctx.send("❌ Dossier `images` introuvable, vérifie qu'il est bien à la racine du projet.")
+
+    if not fichiers:
+        return await ctx.send("❌ Il n'y a aucune image dans le dossier `images`.")
+
+    # On choisit une image au hasard
+    fichier_choisi = random.choice(fichiers)
+    chemin_complet = os.path.join(folder, fichier_choisi)
+
+    # Prépare le fichier et l'embed
+    file = discord.File(chemin_complet, filename=fichier_choisi)
+
+    embed = discord.Embed(
+        title="Nah I'd win",
+        description="Quel Gojo on a aujourd'hui ?",
+        color=discord.Color.purple()
+    )
+    embed.set_image(url=f"attachment://{fichier_choisi}")
+
+    await ctx.send(embed=embed, file=file)
+    
 # ─────────────── HELP ───────────────
 @bot.command(name="help")
 async def help_command(ctx):
