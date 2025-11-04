@@ -286,7 +286,10 @@ async def roulette(ctx, *membres: discord.Member):
 
     # Vérif de base : au moins 2 joueurs
     if len(membres) < 2:
-        return await ctx.send("❌ Il faut au moins **2 joueurs mentionnés** pour lancer une roulette russe.\nEx : `!roulette @joueur1 @joueur2 @joueur3`")
+        return await ctx.send(
+            "❌ Il faut au moins **2 joueurs mentionnés** pour lancer une roulette russe.\n"
+            "Ex : `!roulette @joueur1 @joueur2 @joueur3`"
+        )
 
     # On enlève les bots de la liste
     participants = [m for m in membres if not m.bot]
@@ -298,11 +301,17 @@ async def roulette(ctx, *membres: discord.Member):
     perdant = random.choice(participants)
 
     try:
-        # Mute 10 minutes (600 secondes)
-        await perdant.timeout(timedelta(minutes=10), reason=f"Perdant à la roulette russe (par {ctx.author})")
+        # Mute 10 minutes
+        await perdant.timeout(
+            timedelta(minutes=10),
+            reason=f"Perdant à la roulette russe (par {ctx.author})"
+        )
     except Exception as e:
         print(f"[roulette timeout] {e}")
-        return await ctx.send(f"⚠️ Impossible de mute {perdant.mention}. Vérifie mes permissions (timeout / modérer les membres).")
+        return await ctx.send(
+            f"⚠️ Impossible de mute {perdant.mention}. "
+            "Vérifie mes permissions (Timeout / Modérer les membres)."
+        )
 
     # Embed de résultat
     embed = discord.Embed(
@@ -314,13 +323,35 @@ async def roulette(ctx, *membres: discord.Member):
         ),
         color=discord.Color.dark_red()
     )
-    embed.set_footer(text=f"Lancée par {ctx.author}", icon_url=getattr(ctx.author.avatar, 'url', discord.Embed.Empty))
+    embed.set_footer(
+        text=f"Lancée par {ctx.author}",
+        icon_url=getattr(ctx.author.avatar, 'url', discord.Embed.Empty)
+    )
 
-    # Envoi de l'embed
     await ctx.send(embed=embed)
 
-    # 💬 Message clair dans le salon
-    await ctx.send(f"💥 {perdant.mention} a perdu la roulette russe ! Il est réduit au silence pendant 10 minutes 😈")
+    # Message clair dans le salon
+    await ctx.send(
+        f"💥 {perdant.mention} a perdu la roulette russe ! "
+        "Il est réduit au silence pendant 10 minutes 😈"
+    )
+
+
+# 🔔 Gestion des erreurs de la commande roulette
+@roulette.error
+async def roulette_error(ctx, error):
+    if isinstance(error, commands.MissingPermissions):
+        return await ctx.send("❌ Tu n'as pas la permission d'utiliser cette commande (admin requis).")
+
+    if isinstance(error, commands.BadArgument):
+        return await ctx.send(
+            "❌ Je n'ai pas réussi à comprendre les joueurs.\n"
+            "Vérifie que tu as bien mentionné les membres : `!roulette @joueur1 @joueur2`"
+        )
+
+    # Autres erreurs inattendues
+    print(f"[roulette error] {error}")
+    await ctx.send("⚠️ Une erreur inattendue est survenue avec la commande `!roulette`.")
 
 # ─────────────── HELP ───────────────
 @bot.command(name="help")
