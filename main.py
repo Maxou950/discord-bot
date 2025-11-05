@@ -7,7 +7,6 @@ from datetime import timedelta
 from dotenv import load_dotenv
 from discord.ext import commands
 from keep_alive import keep_alive
-from pypresence import Presence
 
 keep_alive()
 
@@ -440,42 +439,9 @@ interval = 5
 async def on_ready():
     print(f"✅ Connecté en tant que {bot.user.name}")
 
-# (Les autres events et commandes sont inchangés)
-# ⚠️ Je coupe ici pour pas répéter tout ton code
-
-# ─────────────── DISCORD RICH PRESENCE ───────────────
-def update_presence():
-    try:
-        CLIENT_ID = "128734"  # Remplace par ton vrai ID d’application Discord RPC
-        rpc = Presence(CLIENT_ID)
-        rpc.connect()
-
-        rpc.update(
-            state="Jerkmate",
-            details="Ranked",
-            large_image="f4ppzsdwsaa29nj",
-            small_text="Rogue - Level 100",
-            start=1507665886,
-            end=1507665886,
-            party_id="ae488379-351d-4a4f-ad32-2b9b01c91657",
-            party_size=[2, 4],
-            join="MTI4NzM0OjFpMmhuZToxMjMxMjM=",
-        )
-
-        print("🟢 Rich Presence activé avec succès !")
-        while True:
-            rpc.update(
-                state="Jerkmate",
-                details="Ranked",
-            )
-            time.sleep(15)  # actualisation toutes les 15 secondes pour garder la connexion
-    except Exception as e:
-        print(f"[Rich Presence erreur] {e}")
-
-# ─────────────── LANCEMENT ───────────────
-if __name__ == "__main__":
-    # Lancer le Rich Presence dans un thread séparé
-    threading.Thread(target=update_presence, daemon=True).start()
+    # Affichage d'une activité personnalisée visible sur Discord
+    activity = discord.Game("Jerkmate | Ranked")
+    await bot.change_presence(status=discord.Status.online, activity=activity)
 
     # Boucle de lancement du bot
     while True:
