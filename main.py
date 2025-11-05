@@ -374,6 +374,23 @@ async def nahidwin(ctx):
     embed.set_image(url=f"attachment://{fichier_choisi}")
 
     await ctx.send(embed=embed, file=file)
+
+static void UpdatePresence()
+{
+    DiscordRichPresence discordPresence;
+    memset(&discordPresence, 0, sizeof(discordPresence));
+    discordPresence.state = "Jerkmate";
+    discordPresence.details = "Ranked";
+    discordPresence.startTimestamp = 1507665886;
+    discordPresence.endTimestamp = 1507665886;
+    discordPresence.largeImageKey = "f4ppzsdwsaa29nj";
+    discordPresence.smallImageText = "Rogue - Level 100";
+    discordPresence.partyId = "ae488379-351d-4a4f-ad32-2b9b01c91657";
+    discordPresence.partySize = 2;
+    discordPresence.partyMax = 4;
+    discordPresence.joinSecret = "MTI4NzM0OjFpMmhuZToxMjMxMjM= ";
+    Discord_UpdatePresence(&discordPresence);
+}
     
 # ─────────────── HELP ───────────────
 @bot.command(name="help")
