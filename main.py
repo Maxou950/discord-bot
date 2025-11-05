@@ -391,50 +391,7 @@ async def help_command(ctx):
     e.add_field(name="🐈 !cat / 💢 !skillissue", value="Fun/Images", inline=False)
     await ctx.send(embed=e)
 
-import os
-import time
-import random
-import asyncio
-import threading
-import discord
-from datetime import timedelta
-from dotenv import load_dotenv
-from discord.ext import commands
-from keep_alive import keep_alive
-from pypresence import Presence
-
-keep_alive()
-
-# ─────────────── CONFIGURATION ───────────────
-load_dotenv()
-TOKEN = os.getenv("TOKEN")
-PARTENARIAT_CHANNEL_ID = 1312467445881114635
-
-# ✅ Utiliser des Entiers, pas des strings
-DISBOARD_ID = 302050872383242240
-MAKEITAQUOTE_ID = 949479338275913799
-FLAVIBOT_ID = 684773505157431347
-BOT_WHITELIST = {DISBOARD_ID, MAKEITAQUOTE_ID, FLAVIBOT_ID}
-
-# 🚫 Utilisateurs blacklistés
-BLACKLIST_USERS = {
-    #1175143594919731291,
-}
-
-intents = discord.Intents.default()
-intents.messages = True
-intents.guilds = True
-intents.members = True
-intents.message_content = True
-
-bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
-
-# ─────────────── ANTI-SPAM ───────────────
-user_message_count = {}
-spam_threshold = 5
-interval = 5
-
-# ─────────────── EVENTS ───────────────
+# ─────────────── LANCEMENT ───────────────
 @bot.event
 async def on_ready():
     print(f"✅ Connecté en tant que {bot.user.name}")
@@ -443,10 +400,10 @@ async def on_ready():
     activity = discord.Game("Jerkmate | Ranked")
     await bot.change_presence(status=discord.Status.online, activity=activity)
 
-    # Boucle de lancement du bot
-    while True:
-        try:
-            bot.run(TOKEN)
-        except Exception as e:
-            print(f"[CRASH] {e}\nRedémarrage dans 5s...")
-            time.sleep(5)
+# Boucle de lancement pour auto-restart du bot
+while True:
+    try:
+        bot.run(TOKEN)
+    except Exception as e:
+        print(f"[CRASH] {e}\nRedémarrage dans 5s...")
+        time.sleep(5)
