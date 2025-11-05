@@ -7,6 +7,7 @@ from datetime import timedelta
 from dotenv import load_dotenv
 from discord.ext import commands
 from keep_alive import keep_alive
+from pypresence import Presence
 
 keep_alive()
 
@@ -375,22 +376,6 @@ async def nahidwin(ctx):
 
     await ctx.send(embed=embed, file=file)
 
-static void UpdatePresence()
-{
-    DiscordRichPresence discordPresence;
-    memset(&discordPresence, 0, sizeof(discordPresence));
-    discordPresence.state = "Jerkmate";
-    discordPresence.details = "Ranked";
-    discordPresence.startTimestamp = 1507665886;
-    discordPresence.endTimestamp = 1507665886;
-    discordPresence.largeImageKey = "f4ppzsdwsaa29nj";
-    discordPresence.smallImageText = "Rogue - Level 100";
-    discordPresence.partyId = "ae488379-351d-4a4f-ad32-2b9b01c91657";
-    discordPresence.partySize = 2;
-    discordPresence.partyMax = 4;
-    discordPresence.joinSecret = "MTI4NzM0OjFpMmhuZToxMjMxMjM= ";
-    Discord_UpdatePresence(&discordPresence);
-}
     
 # ─────────────── HELP ───────────────
 @bot.command(name="help")
@@ -407,10 +392,95 @@ async def help_command(ctx):
     e.add_field(name="🐈 !cat / 💢 !skillissue", value="Fun/Images", inline=False)
     await ctx.send(embed=e)
 
-# ─────────────── LANCEMENT ───────────────
-while True:
+import os
+import time
+import random
+import asyncio
+import threading
+import discord
+from datetime import timedelta
+from dotenv import load_dotenv
+from discord.ext import commands
+from keep_alive import keep_alive
+from pypresence import Presence
+
+keep_alive()
+
+# ─────────────── CONFIGURATION ───────────────
+load_dotenv()
+TOKEN = os.getenv("TOKEN")
+PARTENARIAT_CHANNEL_ID = 1312467445881114635
+
+# ✅ Utiliser des Entiers, pas des strings
+DISBOARD_ID = 302050872383242240
+MAKEITAQUOTE_ID = 949479338275913799
+FLAVIBOT_ID = 684773505157431347
+BOT_WHITELIST = {DISBOARD_ID, MAKEITAQUOTE_ID, FLAVIBOT_ID}
+
+# 🚫 Utilisateurs blacklistés
+BLACKLIST_USERS = {
+    #1175143594919731291,
+}
+
+intents = discord.Intents.default()
+intents.messages = True
+intents.guilds = True
+intents.members = True
+intents.message_content = True
+
+bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
+
+# ─────────────── ANTI-SPAM ───────────────
+user_message_count = {}
+spam_threshold = 5
+interval = 5
+
+# ─────────────── EVENTS ───────────────
+@bot.event
+async def on_ready():
+    print(f"✅ Connecté en tant que {bot.user.name}")
+
+# (Les autres events et commandes sont inchangés)
+# ⚠️ Je coupe ici pour pas répéter tout ton code
+
+# ─────────────── DISCORD RICH PRESENCE ───────────────
+def update_presence():
     try:
-        bot.run(TOKEN)
+        CLIENT_ID = "128734"  # Remplace par ton vrai ID d’application Discord RPC
+        rpc = Presence(CLIENT_ID)
+        rpc.connect()
+
+        rpc.update(
+            state="Jerkmate",
+            details="Ranked",
+            large_image="f4ppzsdwsaa29nj",
+            small_text="Rogue - Level 100",
+            start=1507665886,
+            end=1507665886,
+            party_id="ae488379-351d-4a4f-ad32-2b9b01c91657",
+            party_size=[2, 4],
+            join="MTI4NzM0OjFpMmhuZToxMjMxMjM=",
+        )
+
+        print("🟢 Rich Presence activé avec succès !")
+        while True:
+            rpc.update(
+                state="Jerkmate",
+                details="Ranked",
+            )
+            time.sleep(15)  # actualisation toutes les 15 secondes pour garder la connexion
     except Exception as e:
-        print(f"[CRASH] {e}\nRedémarrage dans 5s...")
-        time.sleep(5)
+        print(f"[Rich Presence erreur] {e}")
+
+# ─────────────── LANCEMENT ───────────────
+if __name__ == "__main__":
+    # Lancer le Rich Presence dans un thread séparé
+    threading.Thread(target=update_presence, daemon=True).start()
+
+    # Boucle de lancement du bot
+    while True:
+        try:
+            bot.run(TOKEN)
+        except Exception as e:
+            print(f"[CRASH] {e}\nRedémarrage dans 5s...")
+            time.sleep(5)
