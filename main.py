@@ -389,6 +389,8 @@ async def help_command(ctx):
     e.add_field(name="🤬 !insulte @membre", value="Envoie une insulte fun", inline=False)
     e.add_field(name="🎯 !insulte_random", value="Roast un membre au hasard", inline=False)
     e.add_field(name="🐈 !cat / 💢 !skillissue", value="Fun/Images", inline=False)
+    e.add_field(name="🔫 !roulette @membre1 @membre2 ...", value="Mute un membre au hasard parmi les participants", inline=False)
+    e.add_field(name="📸 !Nahidwin", value="Envoie une image Nah I'd win au hasard", inline=False)
     await ctx.send(embed=e)
 
 # ─────────────── LANCEMENT ───────────────
