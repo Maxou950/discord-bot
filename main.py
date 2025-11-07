@@ -117,15 +117,16 @@ async def on_message(message):
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def lockdown(ctx):
-    # On récupère uniquement le salon où la commande a été exécutée
-    channel = ctx.channel  
+    channel = ctx.channel
 
-    # On bloque les messages pour @everyone dans ce salon
-    await channel.set_permissions(ctx.guild.default_role, send_messages=False)
+    # Boucle sur tous les rôles du serveur
+    for role in ctx.guild.roles:
+        # Si le rôle n'a pas la permission administrateur, on bloque l'envoi de messages
+        if not role.permissions.administrator:
+            await channel.set_permissions(role, send_messages=False)
 
-    # On envoie une confirmation
     embed = discord.Embed(
-        description=f"🔒 Le salon {channel.mention} a été verrouillé.",
+        description=f"🔒 Le salon {channel.mention} a été verrouillé. Seuls les administrateurs peuvent envoyer des messages.",
         color=discord.Color.dark_gray()
     )
     await ctx.send(embed=embed)
@@ -136,7 +137,7 @@ async def unlock(ctx):
     for ch in ctx.guild.text_channels:
         await ch.set_permissions(ctx.guild.default_role, send_messages=True)
     embed = discord.Embed(
-        description="🔓 Tous les salons texte ont été déverrouillés.",
+        description="🔒 Le salon {channel.mention} a été dévérouillé.",
         color=discord.Color.green()
     )
     await ctx.send(embed=embed)
