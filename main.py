@@ -275,8 +275,6 @@ async def skillissue(ctx):
 
     file = discord.File("image4.png", filename="image4.png")
     embed.set_image(url="attachment://image4.png")
-
-    # Envoi dans un seul message
     await ctx.send(embed=embed, file=file)
     
 @bot.command()
@@ -284,32 +282,26 @@ async def skillissue(ctx):
 async def roulette(ctx, *membres: discord.Member):
     """Ban Gambling : mute aléatoirement un des joueurs pendant 10 minutes."""
 
-    # Vérif de base : au moins 2 joueurs
     if len(membres) < 2:
         return await ctx.send(
             "❌ Il faut au moins **2 joueurs mentionnés** pour lancer une roulette russe.\n"
             "Ex : `!roulette @joueur1 @joueur2 @joueur3`"
         )
 
-    # On enlève les bots de la liste
     participants = [m for m in membres if not m.bot]
 
     if len(participants) < 2:
         return await ctx.send("❌ Les bots ne jouent pas. Mentionne au moins **2 humains**.")
-
-    # On choisit le perdant
     perdant = random.choice(participants)
 
     try:
-        # Mute 10 minutes
         await perdant.timeout(
             timedelta(minutes=10),
             reason=f"Perdant à la roulette russe (par {ctx.author})"
         )
     except discord.errors.HTTPException as e:
-        # Cas Discord qui renvoie une "erreur" vide alors que c'est bien appliqué
         if e.status == 204:
-            pass  # Pas grave, le mute est appliqué quand même
+            pass
         else:
             print(f"[roulette timeout] {e}")
             return await ctx.send(
@@ -320,8 +312,6 @@ async def roulette(ctx, *membres: discord.Member):
         return await ctx.send(
             f"⚠️ Erreur inattendue pendant le mute : {e}"
         )
-
-    # Embed de résultat
     embed = discord.Embed(
         title="🔫 Roulette russe",
         description=(
@@ -338,7 +328,6 @@ async def roulette(ctx, *membres: discord.Member):
 
     await ctx.send(embed=embed)
 
-    # Message clair dans le salon
     await ctx.send(
         f"💥 {perdant.mention} a perdu la roulette russe ! "
         "Il est réduit au silence pendant 10 minutes 😈"
@@ -346,8 +335,7 @@ async def roulette(ctx, *membres: discord.Member):
 
 @bot.command(name="Nahidwin")
 async def nahidwin(ctx):
-    folder = "images"  # dossier dans ton repo
-    # On récupère tous les fichiers image du dossier
+    folder = "images"
     try:
         fichiers = [
             f for f in os.listdir(folder)
@@ -359,11 +347,9 @@ async def nahidwin(ctx):
     if not fichiers:
         return await ctx.send("❌ Il n'y a aucune image dans le dossier `images`.")
 
-    # On choisit une image au hasard
     fichier_choisi = random.choice(fichiers)
     chemin_complet = os.path.join(folder, fichier_choisi)
 
-    # Prépare le fichier et l'embed
     file = discord.File(chemin_complet, filename=fichier_choisi)
 
     embed = discord.Embed(
@@ -402,7 +388,6 @@ async def on_ready():
     activity = discord.Game("Jerkmate | Ranked")
     await bot.change_presence(status=discord.Status.online, activity=activity)
 
-# Boucle de lancement pour auto-restart du bot
 while True:
     try:
         bot.run(TOKEN)
