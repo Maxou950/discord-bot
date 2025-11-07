@@ -117,10 +117,15 @@ async def on_message(message):
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def lockdown(ctx):
-    for ch in ctx.guild.text_channels:
-        await ch.set_permissions(ctx.guild.default_role, send_messages=False)
+    # On récupère uniquement le salon où la commande a été exécutée
+    channel = ctx.channel  
+
+    # On bloque les messages pour @everyone dans ce salon
+    await channel.set_permissions(ctx.guild.default_role, send_messages=False)
+
+    # On envoie une confirmation
     embed = discord.Embed(
-        description="🔒 Tous les salons texte ont été verrouillés.",
+        description=f"🔒 Le salon {channel.mention} a été verrouillé.",
         color=discord.Color.dark_gray()
     )
     await ctx.send(embed=embed)
