@@ -431,9 +431,9 @@ async def nahidwin(ctx):
 @bot.command(name="help")
 async def help_command(ctx):
     e = discord.Embed(title="🛡️ Commandes du bot", color=discord.Color.blue())
-    e.add_field(name="🔒 !lockdown / 🔓 !unlock", value="Verrouille / déverrouille les salons", inline=False)
     e.add_field(name="🔨 !ban / 👢 !kick", value="Bannir / expulser un membre", inline=False)
     e.add_field(name="🔇 !mute / 🔊 !unmute", value="Timeout (mute) ou unmute un membre", inline=False)
+    e.add_field(name="⚠️ !warn @membre [raison]", value="Avertir un membre (à 3 warns, il est kick)", inline=False)
     e.add_field(name="🧹 !clear <n>", value="Supprimer n messages", inline=False)
     e.add_field(name="🧹 !clear_user @membre", value="Supprimer messages d'un membre", inline=False)
     e.add_field(name="🚫 Blacklist (anti-join)", value="!add_blacklist @membre | !remove_blacklist @membre | !show_blacklist", inline=False)
