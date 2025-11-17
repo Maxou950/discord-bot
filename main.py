@@ -118,6 +118,37 @@ async def on_message(message):
     await bot.process_commands(message)
 
 # ─────────────── COMMANDES MODÉRATION ───────────────
+@bot.command()
+@commands.has_permissions(moderate_members=True)
+async def unwarn(ctx, membre: discord.Member):
+    """Retirer 1 warn à un membre."""
+
+    user_id = membre.id
+
+    # Si la personne n'a aucun warn
+    if user_id not in WARN_COUNTS or WARN_COUNTS[user_id] == 0:
+        return await ctx.send(
+            embed=discord.Embed(
+                description=f"ℹ️ {membre.mention} n'a **aucun warn**.",
+                color=discord.Color.blue()
+            )
+        )
+
+    # Retirer 1 warn
+    WARN_COUNTS[user_id] -= 1
+
+    embed = discord.Embed(
+        title="♻️ Warn retiré",
+        description=(
+            f"Un avertissement a été retiré à {membre.mention}.\n"
+            f"**Warns restants :** {WARN_COUNTS[user_id]}/3"
+        ),
+        color=discord.Color.green()
+    )
+    embed.set_footer(text=f"Action par {ctx.author}", icon_url=getattr(ctx.author.avatar, 'url', discord.Embed.Empty))
+
+    await ctx.send(embed=embed)
+
 
 @bot.command()
 @commands.has_permissions(moderate_members=True)
@@ -434,6 +465,7 @@ async def help_command(ctx):
     e.add_field(name="🔨 !ban / 👢 !kick", value="Bannir / expulser un membre", inline=False)
     e.add_field(name="🔇 !mute / 🔊 !unmute", value="Timeout (mute) ou unmute un membre", inline=False)
     e.add_field(name="⚠️ !warn @membre [raison]", value="Avertir un membre (à 3 warns, il est kick)", inline=False)
+    e.add_field(name="♻️ !unwarn @membre", value="Retire un avertissement au membre", inline=False)
     e.add_field(name="🧹 !clear <n>", value="Supprimer n messages", inline=False)
     e.add_field(name="🧹 !clear_user @membre", value="Supprimer messages d'un membre", inline=False)
     e.add_field(name="🚫 Blacklist (anti-join)", value="!add_blacklist @membre | !remove_blacklist @membre | !show_blacklist", inline=False)
