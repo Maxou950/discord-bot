@@ -10,7 +10,6 @@ from keep_alive import keep_alive
 
 keep_alive()
 
-# ─────────────── CONFIGURATION ───────────────
 load_dotenv()
 TOKEN = os.getenv("TOKEN")
 PARTENARIAT_CHANNEL_ID = 1312467445881114635
@@ -24,7 +23,6 @@ BOT_WHITELIST = {
     FLAVIBOT_ID
 } 
 
-# 🚫 Utilisateurs blacklistés (empêchés de rejoindre : kick auto)
 BLACKLIST_USERS = {
     #1175143594919731291,
 }
@@ -40,12 +38,10 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
 
-# ─────────────── ANTI-SPAM ───────────────
 user_message_count = {}
 spam_threshold = 5
 interval = 5
 
-# ─────────────── EVENTS ───────────────
 @bot.event
 async def on_ready():
     print(f"✅ Connecté en tant que {bot.user.name}")
@@ -57,7 +53,6 @@ async def on_member_join(member):
     except Exception:
         pass
 
-    # ─────────────── BLACKLIST UTILISATEURS (anti-join) ───────────────
     if member.id in BLACKLIST_USERS:
         try:
             await member.kick(reason="Utilisateur blacklisté (anti-join)")
@@ -66,7 +61,6 @@ async def on_member_join(member):
         except Exception as e:
             print(f"[blacklist kick error] {e}")
 
-    # ─────────────── GESTION DES BOTS ───────────────
     if member.bot and member.id not in BOT_WHITELIST:
         try:
             await member.kick(reason="Bot non-whitelisté")
@@ -111,7 +105,6 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
-# ─────────────── COMMANDES MODÉRATION ───────────────
 @bot.command()
 @commands.has_permissions(moderate_members=True)
 async def unwarn(ctx, membre: discord.Member):
@@ -282,7 +275,6 @@ async def unmute(ctx, membre: discord.Member):
     )
     await ctx.send(embed=embed)
 
-# ─────────────── COMMANDES GESTION BLACKLIST (ANTI-JOIN) ───────────────
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def add_blacklist(ctx, membre: discord.Member):
@@ -303,7 +295,6 @@ async def show_blacklist(ctx):
     noms = [f"<@{uid}>" for uid in BLACKLIST_USERS]
     await ctx.send("🚫 **Blacklist (anti-join) :**\n" + "\n".join(noms))
 
-# ─────────────── COMMANDES FUN ───────────────
 ROASTS = [
     "Skillisue.",
     "Tu fais peur à voir bro.",
@@ -450,7 +441,6 @@ async def nahidwin(ctx):
     await ctx.send(embed=embed, file=file)
 
     
-# ─────────────── HELP ───────────────
 @bot.command(name="help")
 async def help_command(ctx):
     e = discord.Embed(title="🛡️ Commandes du bot", color=discord.Color.blue())
@@ -468,12 +458,10 @@ async def help_command(ctx):
     e.add_field(name="📸 !Nahidwin", value="Envoie une image Nah I'd win au hasard", inline=False)
     await ctx.send(embed=e)
 
-# ─────────────── LANCEMENT ───────────────
 @bot.event
 async def on_ready():
     print(f"✅ Connecté en tant que {bot.user.name}")
 
-    # Affichage d'une activité personnalisée visible sur Discord
     activity = discord.Game("Jerkmate | Ranked")
     await bot.change_presence(status=discord.Status.online, activity=activity)
 
