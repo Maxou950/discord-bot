@@ -15,7 +15,6 @@ load_dotenv()
 TOKEN = os.getenv("TOKEN")
 PARTENARIAT_CHANNEL_ID = 1312467445881114635
 
-# ✅ Utiliser des Entiers, pas des strings
 DISBOARD_ID = 302050872383242240
 MAKEITAQUOTE_ID = 949479338275913799
 FLAVIBOT_ID = 684773505157431347
@@ -23,15 +22,14 @@ BOT_WHITELIST = {
     DISBOARD_ID,
     MAKEITAQUOTE_ID,
     FLAVIBOT_ID
-}  # set d'ints, plus efficace pour les recherches
+} 
 
 # 🚫 Utilisateurs blacklistés (empêchés de rejoindre : kick auto)
 BLACKLIST_USERS = {
     #1175143594919731291,
 }
 
-# ⚠️ Système de warns (en mémoire)
-WARN_COUNTS = {}  # {user_id: nombre_de_warns}
+WARN_COUNTS = {}
 
 
 intents = discord.Intents.default()
@@ -54,7 +52,6 @@ async def on_ready():
 
 @bot.event
 async def on_member_join(member):
-    # Petit log pour vérifier l'ID du membre qui rejoint
     try:
         print(f"[DEBUG] Join: {member} | id={member.id} | bot={member.bot}")
     except Exception:
@@ -81,9 +78,6 @@ async def on_member_join(member):
 
 @bot.event
 async def on_message(message):
-    # Si on veut ignorer totalement les messages d'utilisateurs blacklistés (optionnel)
-    # if message.author.id in BLACKLIST_USERS:
-    #     return
 
     if message.author.bot:
         return
@@ -125,7 +119,6 @@ async def unwarn(ctx, membre: discord.Member):
 
     user_id = membre.id
 
-    # Si la personne n'a aucun warn
     if user_id not in WARN_COUNTS or WARN_COUNTS[user_id] == 0:
         return await ctx.send(
             embed=discord.Embed(
@@ -134,7 +127,6 @@ async def unwarn(ctx, membre: discord.Member):
             )
         )
 
-    # Retirer 1 warn
     WARN_COUNTS[user_id] -= 1
 
     embed = discord.Embed(
@@ -155,7 +147,6 @@ async def unwarn(ctx, membre: discord.Member):
 async def warn(ctx, membre: discord.Member, *, reason: str = "Aucune raison fournie."):
     """Avertir un membre. À 3 warns, il est kick."""
 
-    # Empêcher quelques cas débiles
     if membre.bot:
         return await ctx.send("❌ Tu ne peux pas warn un bot.")
     if membre == ctx.author:
@@ -163,12 +154,10 @@ async def warn(ctx, membre: discord.Member, *, reason: str = "Aucune raison four
     if membre == ctx.guild.owner:
         return await ctx.send("❌ Tu ne peux pas warn le propriétaire du serveur.")
 
-    # Incrément du nombre de warns
     user_id = membre.id
     WARN_COUNTS[user_id] = WARN_COUNTS.get(user_id, 0) + 1
     nb_warns = WARN_COUNTS[user_id]
 
-    # DM au membre
     try:
         dm_embed = discord.Embed(
             title="⚠️ Avertissement",
@@ -182,10 +171,8 @@ async def warn(ctx, membre: discord.Member, *, reason: str = "Aucune raison four
         )
         await membre.send(embed=dm_embed)
     except Exception:
-        # DM fermés, on s'en fout un peu, on ne casse pas la commande
         pass
 
-    # Message dans le salon
     embed = discord.Embed(
         title="⚠️ Warn",
         description=(
@@ -198,11 +185,9 @@ async def warn(ctx, membre: discord.Member, *, reason: str = "Aucune raison four
     embed.set_footer(text=f"Warn par {ctx.author}", icon_url=getattr(ctx.author.avatar, 'url', discord.Embed.Empty))
     await ctx.send(embed=embed)
 
-    # Si 3 warns → kick
     if nb_warns >= 3:
         try:
             await membre.kick(reason=f"Atteint 3 warns (dernier warn par {ctx.author})")
-            # Optionnel : reset le compteur
             WARN_COUNTS.pop(user_id, None)
 
             kick_embed = discord.Embed(
@@ -365,10 +350,8 @@ async def cat(ctx):
 
 @bot.command()
 async def skillissue(ctx):
-    # Liste des images
-    images = ["image4.png", "skill_issue.png"]  # <-- Ajoute ici tes fichiers
+    images = ["image4.png", "skill_issue.png"] 
 
-    # Choisit une image au hasard
     chosen = random.choice(images)
 
     embed = discord.Embed(
