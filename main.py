@@ -272,14 +272,21 @@ async def cat(ctx):
 
 @bot.command()
 async def skillissue(ctx):
+    # Liste des images
+    images = ["image4.png", "skill_issue.png"]  # <-- Ajoute ici tes fichiers
+
+    # Choisit une image au hasard
+    chosen = random.choice(images)
+
     embed = discord.Embed(
         title="💢 Skill Issue",
         description="Un manque de compétence détecté...",
         color=discord.Color.red()
     )
 
-    file = discord.File("image4.png", filename="image4.png")
-    embed.set_image(url="attachment://image4.png")
+    file = discord.File(chosen, filename=chosen)
+    embed.set_image(url=f"attachment://{chosen}")
+
     await ctx.send(embed=embed, file=file)
     
 @bot.command()
