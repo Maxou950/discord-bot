@@ -30,6 +30,10 @@ BLACKLIST_USERS = {
     #1175143594919731291,
 }
 
+# ⚠️ Système de warns (en mémoire)
+WARN_COUNTS = {}  # {user_id: nombre_de_warns}
+
+
 intents = discord.Intents.default()
 intents.messages = True
 intents.guilds = True
@@ -115,20 +119,107 @@ async def on_message(message):
 
 # ─────────────── COMMANDES MODÉRATION ───────────────
 @bot.command()
-@commands.has_permissions(administrator=True)
-async def lockdown(ctx):
-    # On récupère uniquement le salon où la commande a été exécutée
-    channel = ctx.channel  
+@commands.has_permissions(moderate_members=True)
+async def unwarn(ctx, membre: discord.Member):
+    """Retirer 1 warn à un membre."""
 
-    # On bloque les messages pour @everyone dans ce salon
-    await channel.set_permissions(ctx.guild.default_role, send_messages=False)
+    user_id = membre.id
 
-    # On envoie une confirmation
+    # Si la personne n'a aucun warn
+    if user_id not in WARN_COUNTS or WARN_COUNTS[user_id] == 0:
+        return await ctx.send(
+            embed=discord.Embed(
+                description=f"ℹ️ {membre.mention} n'a **aucun warn**.",
+                color=discord.Color.blue()
+            )
+        )
+
+    # Retirer 1 warn
+    WARN_COUNTS[user_id] -= 1
+
     embed = discord.Embed(
-        description=f"🔒 Le salon {channel.mention} a été verrouillé.",
-        color=discord.Color.dark_gray()
+        title="♻️ Warn retiré",
+        description=(
+            f"Un avertissement a été retiré à {membre.mention}.\n"
+            f"**Warns restants :** {WARN_COUNTS[user_id]}/3"
+        ),
+        color=discord.Color.green()
     )
+    embed.set_footer(text=f"Action par {ctx.author}", icon_url=getattr(ctx.author.avatar, 'url', discord.Embed.Empty))
+
     await ctx.send(embed=embed)
+
+
+@bot.command()
+@commands.has_permissions(moderate_members=True)
+async def warn(ctx, membre: discord.Member, *, reason: str = "Aucune raison fournie."):
+    """Avertir un membre. À 3 warns, il est kick."""
+
+    # Empêcher quelques cas débiles
+    if membre.bot:
+        return await ctx.send("❌ Tu ne peux pas warn un bot.")
+    if membre == ctx.author:
+        return await ctx.send("❌ Tu ne peux pas te warn toi-même.")
+    if membre == ctx.guild.owner:
+        return await ctx.send("❌ Tu ne peux pas warn le propriétaire du serveur.")
+
+    # Incrément du nombre de warns
+    user_id = membre.id
+    WARN_COUNTS[user_id] = WARN_COUNTS.get(user_id, 0) + 1
+    nb_warns = WARN_COUNTS[user_id]
+
+    # DM au membre
+    try:
+        dm_embed = discord.Embed(
+            title="⚠️ Avertissement",
+            description=(
+                f"Tu as reçu un avertissement sur le serveur **{ctx.guild.name}**.\n\n"
+                f"**Modérateur :** {ctx.author} (`{ctx.author.id}`)\n"
+                f"**Raison :** {reason}\n"
+                f"**Nombre total de warns :** {nb_warns}/3"
+            ),
+            color=discord.Color.orange()
+        )
+        await membre.send(embed=dm_embed)
+    except Exception:
+        # DM fermés, on s'en fout un peu, on ne casse pas la commande
+        pass
+
+    # Message dans le salon
+    embed = discord.Embed(
+        title="⚠️ Warn",
+        description=(
+            f"{membre.mention} a reçu un avertissement.\n"
+            f"**Raison :** {reason}\n"
+            f"**Warns :** {nb_warns}/3"
+        ),
+        color=discord.Color.orange()
+    )
+    embed.set_footer(text=f"Warn par {ctx.author}", icon_url=getattr(ctx.author.avatar, 'url', discord.Embed.Empty))
+    await ctx.send(embed=embed)
+
+    # Si 3 warns → kick
+    if nb_warns >= 3:
+        try:
+            await membre.kick(reason=f"Atteint 3 warns (dernier warn par {ctx.author})")
+            # Optionnel : reset le compteur
+            WARN_COUNTS.pop(user_id, None)
+
+            kick_embed = discord.Embed(
+                title="🔨 Auto-kick",
+                description=(
+                    f"{membre.mention} a été **kick** pour avoir atteint **3 avertissements**."
+                ),
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=kick_embed)
+        except Exception as e:
+            err_embed = discord.Embed(
+                title="⚠️ Erreur kick",
+                description=f"Impossible de kick {membre.mention}.\n```{e}```",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=err_embed)
 
 @bot.command()
 @commands.has_permissions(administrator=True)
@@ -378,9 +469,10 @@ async def nahidwin(ctx):
 @bot.command(name="help")
 async def help_command(ctx):
     e = discord.Embed(title="🛡️ Commandes du bot", color=discord.Color.blue())
-    e.add_field(name="🔒 !lockdown / 🔓 !unlock", value="Verrouille / déverrouille les salons", inline=False)
     e.add_field(name="🔨 !ban / 👢 !kick", value="Bannir / expulser un membre", inline=False)
     e.add_field(name="🔇 !mute / 🔊 !unmute", value="Timeout (mute) ou unmute un membre", inline=False)
+    e.add_field(name="⚠️ !warn @membre [raison]", value="Avertir un membre (à 3 warns, il est kick)", inline=False)
+    e.add_field(name="♻️ !unwarn @membre", value="Retire un avertissement au membre", inline=False)
     e.add_field(name="🧹 !clear <n>", value="Supprimer n messages", inline=False)
     e.add_field(name="🧹 !clear_user @membre", value="Supprimer messages d'un membre", inline=False)
     e.add_field(name="🚫 Blacklist (anti-join)", value="!add_blacklist @membre | !remove_blacklist @membre | !show_blacklist", inline=False)
