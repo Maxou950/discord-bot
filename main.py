@@ -377,7 +377,7 @@ async def nuke(ctx):
 
     await asyncio.sleep(1)
     await msg.edit(embed=discord.Embed(
-        title="☢️ LNUKE DU SERV",
+        title="☢️ NUKE DU SERV",
         description="💣 Destruction du serveur dans **2**…",
         color=discord.Color.dark_red()
     ))
