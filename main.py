@@ -355,6 +355,49 @@ async def skillissue(ctx):
     embed.set_image(url=f"attachment://{chosen}")
 
     await ctx.send(embed=embed, file=file)
+
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def nuke(ctx):
+    """💣 Simulation de nuke (100% fake, juste pour le fun)"""
+
+    embed = discord.Embed(
+        title="☢️ NUKE DU SERV",
+        description="Ton serveur il est foutu…",
+        color=discord.Color.dark_red()
+    )
+    msg = await ctx.send(embed=embed)
+
+    await asyncio.sleep(1)
+    await msg.edit(embed=discord.Embed(
+        title="☢️ NUKE DU SERV",
+        description="💣 Destruction du serveur dans **3**…",
+        color=discord.Color.dark_red()
+    ))
+
+    await asyncio.sleep(1)
+    await msg.edit(embed=discord.Embed(
+        title="☢️ LNUKE DU SERV",
+        description="💣 Destruction du serveur dans **2**…",
+        color=discord.Color.dark_red()
+    ))
+
+    await asyncio.sleep(1)
+    await msg.edit(embed=discord.Embed(
+        title="☢️ NUKE DU SERV",
+        description="💣 Destruction du serveur dans **1**…",
+        color=discord.Color.dark_red()
+    ))
+
+    await asyncio.sleep(2)
+    await msg.edit(embed=discord.Embed(
+        title="❌ LE SERV EST MORT",
+        description=(
+            "💥 **SERVEUR DEAD**\n\n"
+            "Naaaaaan je déconne ya rien mdrrrrr\n"
+        ),
+        color=discord.Color.green()
+    ))
     
 @bot.command()
 @commands.has_permissions(administrator=True)
