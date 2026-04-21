@@ -60,21 +60,6 @@ FEMBOY_TAGS = [
     "trap 1boy rating:g"
 ]
 
-BLACKLIST_TAGS = {
-    "comic",
-    "translated",
-    "greyscale",
-    "monochrome",
-    "text",
-    "speech_bubble",
-    "4koma",
-    "multiple_views",
-    "chibi",
-    "simple_background",
-    "sketch",
-    "lineart"
-}
-
 LAST_UMA_IMAGES = []
 MAX_UMA_HISTORY = 40
 
