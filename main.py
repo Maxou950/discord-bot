@@ -632,16 +632,7 @@ async def femboy(ctx):
             lower_url = image_url.lower()
             if not any(ext in lower_url for ext in [".jpg", ".jpeg", ".png", ".webp"]):
                 continue
-
-            tag_string = post.get("tag_string", "")
-            post_tags = set(tag_string.split())
-
-            if post_tags & BLACKLIST_TAGS:
-                continue
-
-            if image_url in LAST_FEMBOY_IMAGES:
-                continue
-
+                
             posts_valides.append(post)
 
         if not posts_valides:
