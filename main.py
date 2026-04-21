@@ -548,10 +548,13 @@ async def roulette(ctx, *membres: discord.Member):
 @bot.command()
 @commands.cooldown(1, 5, commands.BucketType.user)
 async def femboy(ctx):
-    """Envoie une image femboy via Danbooru"""
+    """Envoie une image plus variée et plus proche du tag voulu"""
 
     try:
-        url = "https://danbooru.donmai.us/posts.json?tags=femboy+rating:g&limit=20"
+        page = random.randint(1, 200)
+
+        tags = "otokonoko+1boy+solo+rating:g"
+        url = f"https://danbooru.donmai.us/posts.json?tags={tags}&limit=50&page={page}"
 
         async with aiohttp.ClientSession() as session:
             async with session.get(
@@ -568,11 +571,23 @@ async def femboy(ctx):
         if not data:
             return await ctx.send("❌ Aucun résultat trouvé.")
 
-        post = random.choice(data)
+        posts_valides = []
+        for post in data:
+            image_url = post.get("file_url") or post.get("large_file_url")
+            if not image_url:
+                continue
 
+            ext = image_url.lower()
+            if not (".jpg" in ext or ".jpeg" in ext or ".png" in ext or ".webp" in ext):
+                continue
+
+            posts_valides.append(post)
+
+        if not posts_valides:
+            return await ctx.send("❌ Aucune image valide trouvée.")
+
+        post = random.choice(posts_valides)
         image_url = post.get("file_url") or post.get("large_file_url")
-        if not image_url:
-            return await ctx.send("❌ Image introuvable.")
 
         embed = discord.Embed(
             title="💖 Femboy",
