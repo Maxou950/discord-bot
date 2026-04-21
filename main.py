@@ -55,9 +55,9 @@ LAST_FEMBOY_IMAGES = []
 MAX_FEMBOY_HISTORY = 30
 
 FEMBOY_TAGS = [
-    "otokonoko rating:g",
-    "feminine_male rating:g",
-    "otokonoko solo rating:g"
+    "trap rating:g",
+    "trap solo rating:g",
+    "trap 1boy rating:g"
 ]
 
 BLACKLIST_TAGS = {
