@@ -3,6 +3,7 @@ import time
 import random
 import asyncio
 import discord
+import requests
 from datetime import timedelta
 from dotenv import load_dotenv
 from discord.ext import commands
@@ -541,6 +542,41 @@ async def roulette(ctx, *membres: discord.Member):
         "Il est réduit au silence pendant 10 minutes 😈"
     )
 
+@bot.command()
+@commands.cooldown(1, 5, commands.BucketType.user)
+async def femboy(ctx):
+    """Envoie une image femboy"""
+
+    try:
+        url = "https://femboyfinder.firestreaker2.gg/api/femboy"
+
+        response = requests.get(url)
+        data = response.json()
+
+        if data.get("error"):
+            return await ctx.send("❌ Aucun résultat trouvé.")
+
+        image_url = data.get("url")
+
+        if not image_url:
+            return await ctx.send("❌ Image introuvable.")
+
+        embed = discord.Embed(
+            title="💖 Femboy",
+            color=discord.Color.pink()
+        )
+
+        embed.set_image(url=image_url)
+
+        # optionnel (source)
+        if data.get("source"):
+            embed.add_field(name="Source", value=data["source"], inline=False)
+
+        await ctx.send(embed=embed)
+
+    except Exception as e:
+        print(f"[femboy error] {e}")
+        await ctx.send("❌ Erreur API.")
 
 @bot.command(name="Nahidwin")
 async def nahidwin(ctx):
