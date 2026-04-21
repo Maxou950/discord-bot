@@ -360,9 +360,9 @@ async def shame(ctx):
         embed = discord.Embed(
             title="📢 SHAME",
             description=(
-                f"💀 Regardez ce qu’a dit {auteur.mention} :\n\n"
+                f"💀 Regardez ce que {auteur.mention} :\n\n"
                 f"```{contenu}```\n"
-                f"🔥 Insultez-le immédiatement."
+                f"🔥 Insultez-lui ses ancêtres."
             ),
             color=discord.Color.dark_red()
         )
