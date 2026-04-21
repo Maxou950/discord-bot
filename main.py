@@ -51,6 +51,29 @@ user_message_count = {}
 spam_threshold = 5
 interval = 5
 
+LAST_FEMBOY_IMAGES = []
+MAX_FEMBOY_HISTORY = 30
+
+FEMBOY_TAGS = [
+    "otokonoko rating:g",
+    "feminine_male rating:g",
+    "otokonoko solo rating:g"
+]
+
+BLACKLIST_TAGS = {
+    "comic",
+    "translated",
+    "greyscale",
+    "monochrome",
+    "text",
+    "speech_bubble",
+    "4koma",
+    "multiple_views",
+    "chibi",
+    "simple_background",
+    "sketch",
+    "lineart"
+}
 
 @bot.event
 async def on_member_join(member):
@@ -554,18 +577,11 @@ async def roulette(ctx, *membres: discord.Member):
 @bot.command()
 @commands.cooldown(1, 5, commands.BucketType.user)
 async def femboy(ctx):
-    """Envoie une image via Danbooru"""
+    """Envoie une image variée en évitant les doublons et les posts éclatés"""
 
     try:
-        # Plusieurs tags possibles pour éviter les résultats nuls ou bizarres
-        tags_list = [
-            "otokonoko rating:g",
-            "feminine_male rating:g",
-            "otokonoko solo rating:g"
-        ]
-        tags = random.choice(tags_list)
-
         url = "https://danbooru.donmai.us/posts.json"
+        tags = random.choice(FEMBOY_TAGS)
 
         print(f"[femboy] tags = {tags}", flush=True)
 
@@ -574,7 +590,7 @@ async def femboy(ctx):
                 url,
                 params={
                     "tags": tags,
-                    "limit": 20
+                    "limit": 100
                 },
                 headers={"User-Agent": "HirashiBot/1.0"}
             ) as response:
@@ -592,22 +608,56 @@ async def femboy(ctx):
             return await ctx.send("❌ Aucun résultat trouvé.")
 
         posts_valides = []
+
         for post in data:
             image_url = post.get("file_url") or post.get("large_file_url")
             if not image_url:
                 continue
 
-            lower = image_url.lower()
-            if not any(ext in lower for ext in [".jpg", ".jpeg", ".png", ".webp"]):
+            lower_url = image_url.lower()
+            if not any(ext in lower_url for ext in [".jpg", ".jpeg", ".png", ".webp"]):
+                continue
+
+            tag_string = post.get("tag_string", "")
+            post_tags = set(tag_string.split())
+
+            if post_tags & BLACKLIST_TAGS:
+                continue
+
+            if image_url in LAST_FEMBOY_IMAGES:
                 continue
 
             posts_valides.append(post)
+
+        if not posts_valides:
+            LAST_FEMBOY_IMAGES.clear()
+
+            for post in data:
+                image_url = post.get("file_url") or post.get("large_file_url")
+                if not image_url:
+                    continue
+
+                lower_url = image_url.lower()
+                if not any(ext in lower_url for ext in [".jpg", ".jpeg", ".png", ".webp"]):
+                    continue
+
+                tag_string = post.get("tag_string", "")
+                post_tags = set(tag_string.split())
+
+                if post_tags & BLACKLIST_TAGS:
+                    continue
+
+                posts_valides.append(post)
 
         if not posts_valides:
             return await ctx.send("❌ Aucune image valide trouvée.")
 
         post = random.choice(posts_valides)
         image_url = post.get("file_url") or post.get("large_file_url")
+
+        LAST_FEMBOY_IMAGES.append(image_url)
+        if len(LAST_FEMBOY_IMAGES) > MAX_FEMBOY_HISTORY:
+            LAST_FEMBOY_IMAGES.pop(0)
 
         embed = discord.Embed(
             title="💖 Femboy",
