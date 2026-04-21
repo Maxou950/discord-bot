@@ -52,13 +52,30 @@ spam_threshold = 5
 interval = 5
 
 LAST_FEMBOY_IMAGES = []
-MAX_FEMBOY_HISTORY = 30
+MAX_FEMBOY_HISTORY = 80
+
+LAST_FEMBOY_CHARACTERS = []
+MAX_FEMBOY_CHARACTER_HISTORY = 12
 
 FEMBOY_TAGS = [
     "trap rating:g",
     "trap solo rating:g",
-    "trap 1boy rating:g"
+    "trap 1boy rating:g",
+    "otokonoko rating:g",
+    "feminine_male rating:g"
 ]
+
+FEMBOY_CHARACTER_TAGS = {
+    "astolfo",
+    "felix_argyle",
+    "hideyoshi_kinoshita",
+    "hideri_kanzaki",
+    "saika_totsuka",
+    "nagisa_shiota",
+    "gasper_vladi",
+    "rimuru_tempest",
+    "utsuho_(femboy_heaven)",
+}
 
 LAST_UMA_IMAGES = []
 MAX_UMA_HISTORY = 40
@@ -89,6 +106,13 @@ UMA_BLACKLIST = {
     "sketch",
     "lineart"
 }
+
+def extract_recent_femboy_character(tag_string: str):
+    tags = set(tag_string.split())
+    found = tags & FEMBOY_CHARACTER_TAGS
+    if found:
+        return sorted(found)[0]
+    return None
 
 @bot.event
 async def on_member_join(member):
@@ -592,39 +616,56 @@ async def roulette(ctx, *membres: discord.Member):
 @bot.command()
 @commands.cooldown(1, 5, commands.BucketType.user)
 async def femboy(ctx):
-    """Envoie une image variée en évitant les doublons et les posts éclatés"""
+    """Envoie une image femboy avec moins de doublons et moins de répétitions de perso"""
+
+    global LAST_FEMBOY_IMAGES, LAST_FEMBOY_CHARACTERS
 
     try:
         url = "https://danbooru.donmai.us/posts.json"
-        tags = random.choice(FEMBOY_TAGS)
 
-        print(f"[femboy] tags = {tags}", flush=True)
+        # On mélange plusieurs lots pour avoir plus de variété
+        all_posts = []
 
         async with aiohttp.ClientSession() as session:
-            async with session.get(
-                url,
-                params={
-                    "tags": tags,
-                    "limit": 100
-                },
-                headers={"User-Agent": "HirashiBot/1.0"}
-            ) as response:
-                print(f"[femboy] status = {response.status}", flush=True)
+            for _ in range(3):
+                tags = random.choice(FEMBOY_TAGS)
 
-                text = await response.text()
-                print(f"[femboy] body = {text[:300]}", flush=True)
+                async with session.get(
+                    url,
+                    params={
+                        "tags": tags,
+                        "limit": 100,
+                        "page": random.randint(1, 30)
+                    },
+                    headers={"User-Agent": "HirashiBot/1.0"}
+                ) as response:
 
-                if response.status != 200:
-                    return await ctx.send(f"❌ API indisponible ({response.status})")
+                    if response.status != 200:
+                        text = await response.text()
+                        print(f"[femboy] status={response.status} body={text[:300]}", flush=True)
+                        continue
 
-                data = await response.json()
+                    data = await response.json()
+                    if isinstance(data, list):
+                        all_posts.extend(data)
 
-        if not data:
+        if not all_posts:
             return await ctx.send("❌ Aucun résultat trouvé.")
 
+        # Déduplication brute par id
+        seen_ids = set()
+        unique_posts = []
+        for post in all_posts:
+            pid = post.get("id")
+            if pid in seen_ids:
+                continue
+            seen_ids.add(pid)
+            unique_posts.append(post)
+
+        # 1er filtre : éviter images récentes + personnages récents
         posts_valides = []
 
-        for post in data:
+        for post in unique_posts:
             image_url = post.get("file_url") or post.get("large_file_url")
             if not image_url:
                 continue
@@ -632,13 +673,21 @@ async def femboy(ctx):
             lower_url = image_url.lower()
             if not any(ext in lower_url for ext in [".jpg", ".jpeg", ".png", ".webp"]):
                 continue
-                
+
+            if image_url in LAST_FEMBOY_IMAGES:
+                continue
+
+            tag_string = post.get("tag_string", "")
+            character = extract_recent_femboy_character(tag_string)
+
+            if character and character in LAST_FEMBOY_CHARACTERS:
+                continue
+
             posts_valides.append(post)
 
+        # 2e filtre : si trop strict, on garde juste le filtre image
         if not posts_valides:
-            LAST_FEMBOY_IMAGES.clear()
-
-            for post in data:
+            for post in unique_posts:
                 image_url = post.get("file_url") or post.get("large_file_url")
                 if not image_url:
                     continue
@@ -647,10 +696,23 @@ async def femboy(ctx):
                 if not any(ext in lower_url for ext in [".jpg", ".jpeg", ".png", ".webp"]):
                     continue
 
-                tag_string = post.get("tag_string", "")
-                post_tags = set(tag_string.split())
+                if image_url in LAST_FEMBOY_IMAGES:
+                    continue
 
-                if post_tags & BLACKLIST_TAGS:
+                posts_valides.append(post)
+
+        # 3e secours : on reset l’historique image
+        if not posts_valides:
+            LAST_FEMBOY_IMAGES.clear()
+            LAST_FEMBOY_CHARACTERS.clear()
+
+            for post in unique_posts:
+                image_url = post.get("file_url") or post.get("large_file_url")
+                if not image_url:
+                    continue
+
+                lower_url = image_url.lower()
+                if not any(ext in lower_url for ext in [".jpg", ".jpeg", ".png", ".webp"]):
                     continue
 
                 posts_valides.append(post)
@@ -660,10 +722,17 @@ async def femboy(ctx):
 
         post = random.choice(posts_valides)
         image_url = post.get("file_url") or post.get("large_file_url")
+        tag_string = post.get("tag_string", "")
+        character = extract_recent_femboy_character(tag_string)
 
         LAST_FEMBOY_IMAGES.append(image_url)
         if len(LAST_FEMBOY_IMAGES) > MAX_FEMBOY_HISTORY:
             LAST_FEMBOY_IMAGES.pop(0)
+
+        if character:
+            LAST_FEMBOY_CHARACTERS.append(character)
+            if len(LAST_FEMBOY_CHARACTERS) > MAX_FEMBOY_CHARACTER_HISTORY:
+                LAST_FEMBOY_CHARACTERS.pop(0)
 
         embed = discord.Embed(
             title="💖 Femboy",
@@ -678,6 +747,9 @@ async def femboy(ctx):
                 value=f"https://danbooru.donmai.us/posts/{post_id}",
                 inline=False
             )
+
+        if character:
+            embed.set_footer(text=f"Personnage détecté : {character}")
 
         await ctx.send(embed=embed)
 
