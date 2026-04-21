@@ -548,20 +548,20 @@ async def roulette(ctx, *membres: discord.Member):
 @bot.command()
 @commands.cooldown(1, 5, commands.BucketType.user)
 async def femboy(ctx):
-    """Envoie une image femboy"""
-
     try:
         url = "https://femboyfinder.firestreaker2.gg/api/femboy"
         print(f"[femboy] appel API: {url}")
 
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
-                print(f"[femboy] status: {response.status}")
+                status = response.status
                 text = await response.text()
+
+                print(f"[femboy] status: {status}")
                 print(f"[femboy] réponse brute: {text[:500]}")
 
-                if response.status != 200:
-                    return await ctx.send(f"❌ Erreur API ({response.status})")
+                if status != 200:
+                    return await ctx.send(f"❌ API indisponible ({status})")
 
                 data = await response.json()
 
@@ -571,7 +571,6 @@ async def femboy(ctx):
             return await ctx.send("❌ Aucun résultat trouvé.")
 
         image_url = data.get("url")
-
         if not image_url:
             return await ctx.send("❌ Image introuvable.")
 
@@ -588,8 +587,7 @@ async def femboy(ctx):
 
     except Exception as e:
         print(f"[femboy error] {type(e).__name__}: {e}")
-        await ctx.send("❌ Erreur API.")
-
+        await ctx.send(f"❌ Erreur API : {type(e).__name__}")
 
 @bot.command(name="Nahidwin")
 async def nahidwin(ctx):
