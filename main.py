@@ -18,13 +18,19 @@ PARTENARIAT_CHANNEL_ID = 1312467445881114635
 DISBOARD_ID = 302050872383242240
 MAKEITAQUOTE_ID = 949479338275913799
 FLAVIBOT_ID = 684773505157431347
-VANITY_ID = 1457014404158853192
+JOHN_BOT = 958547309728256081
+INVITE_LOGGER_ID = 499595256270946326
+FLAVIBOT2_ID = 749248172756303913
+RAIDPROTECT_ID = 466578580449525760
 
 BOT_WHITELIST = {
     DISBOARD_ID,
     MAKEITAQUOTE_ID,
     FLAVIBOT_ID,
-    VANITY_ID
+    JOHN_BOT,
+    INVITE_LOGGER_ID,
+    RAIDPROTECT_ID
+    FLAVIBOT2_ID
 }
 
 BLACKLIST_USERS = {
@@ -548,22 +554,36 @@ async def roulette(ctx, *membres: discord.Member):
 @bot.command()
 @commands.cooldown(1, 5, commands.BucketType.user)
 async def femboy(ctx):
-    """Envoie une image plus variée et plus proche du tag voulu"""
+    """Envoie une image via Danbooru"""
 
     try:
-        page = random.randint(1, 200)
+        # Plusieurs tags possibles pour éviter les résultats nuls ou bizarres
+        tags_list = [
+            "otokonoko rating:g",
+            "feminine_male rating:g",
+            "otokonoko solo rating:g"
+        ]
+        tags = random.choice(tags_list)
 
-        tags = "otokonoko+1boy+solo+rating:g"
-        url = f"https://danbooru.donmai.us/posts.json?tags={tags}&limit=50&page={page}"
+        url = "https://danbooru.donmai.us/posts.json"
+
+        print(f"[femboy] tags = {tags}", flush=True)
 
         async with aiohttp.ClientSession() as session:
             async with session.get(
                 url,
+                params={
+                    "tags": tags,
+                    "limit": 20
+                },
                 headers={"User-Agent": "HirashiBot/1.0"}
             ) as response:
+                print(f"[femboy] status = {response.status}", flush=True)
+
+                text = await response.text()
+                print(f"[femboy] body = {text[:300]}", flush=True)
+
                 if response.status != 200:
-                    text = await response.text()
-                    print(f"[femboy] status={response.status} body={text[:300]}", flush=True)
                     return await ctx.send(f"❌ API indisponible ({response.status})")
 
                 data = await response.json()
@@ -577,8 +597,8 @@ async def femboy(ctx):
             if not image_url:
                 continue
 
-            ext = image_url.lower()
-            if not (".jpg" in ext or ".jpeg" in ext or ".png" in ext or ".webp" in ext):
+            lower = image_url.lower()
+            if not any(ext in lower for ext in [".jpg", ".jpeg", ".png", ".webp"]):
                 continue
 
             posts_valides.append(post)
