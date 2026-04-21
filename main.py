@@ -75,6 +75,32 @@ BLACKLIST_TAGS = {
     "lineart"
 }
 
+# === Umamusume config ===
+LAST_UMA_IMAGES = []
+MAX_UMA_HISTORY = 30
+
+UMA_TAGS = [
+    "umamusume rating:g",
+    "uma_musume_pretty_derby rating:g",
+    "tokai_teio_(umamusume) rating:g",
+    "oguri_cap_(umamusume) rating:g"
+]
+
+UMA_BLACKLIST = {
+    "comic",
+    "translated",
+    "greyscale",
+    "monochrome",
+    "text",
+    "speech_bubble",
+    "4koma",
+    "multiple_views",
+    "chibi",
+    "simple_background",
+    "sketch",
+    "lineart"
+}
+
 @bot.event
 async def on_member_join(member):
     try:
@@ -677,6 +703,105 @@ async def femboy(ctx):
 
     except Exception as e:
         print(f"[femboy error] {type(e).__name__}: {e}", flush=True)
+        await ctx.send(f"❌ Erreur API : {type(e).__name__}")
+
+@bot.command()
+@commands.cooldown(1, 5, commands.BucketType.user)
+async def umamusume(ctx):
+    """Envoie une image Uma Musume"""
+
+    try:
+        url = "https://danbooru.donmai.us/posts.json"
+        tags = random.choice(UMA_TAGS)
+
+        print(f"[uma] tags = {tags}", flush=True)
+
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                url,
+                params={
+                    "tags": tags,
+                    "limit": 100
+                },
+                headers={"User-Agent": "HirashiBot/1.0"}
+            ) as response:
+
+                print(f"[uma] status = {response.status}", flush=True)
+
+                if response.status != 200:
+                    return await ctx.send(f"❌ API indisponible ({response.status})")
+
+                data = await response.json()
+
+        if not data:
+            return await ctx.send("❌ Aucun résultat trouvé.")
+
+        posts_valides = []
+
+        for post in data:
+            image_url = post.get("file_url") or post.get("large_file_url")
+            if not image_url:
+                continue
+
+            if not any(ext in image_url.lower() for ext in [".jpg", ".jpeg", ".png", ".webp"]):
+                continue
+
+            tags_post = set(post.get("tag_string", "").split())
+
+            if tags_post & UMA_BLACKLIST:
+                continue
+
+            if image_url in LAST_UMA_IMAGES:
+                continue
+
+            posts_valides.append(post)
+
+        if not posts_valides:
+            LAST_UMA_IMAGES.clear()
+
+            for post in data:
+                image_url = post.get("file_url") or post.get("large_file_url")
+                if not image_url:
+                    continue
+
+                if not any(ext in image_url.lower() for ext in [".jpg", ".jpeg", ".png", ".webp"]):
+                    continue
+
+                tags_post = set(post.get("tag_string", "").split())
+
+                if tags_post & UMA_BLACKLIST:
+                    continue
+
+                posts_valides.append(post)
+
+        if not posts_valides:
+            return await ctx.send("❌ Aucune image valide trouvée.")
+
+        post = random.choice(posts_valides)
+        image_url = post.get("file_url") or post.get("large_file_url")
+
+        LAST_UMA_IMAGES.append(image_url)
+        if len(LAST_UMA_IMAGES) > MAX_UMA_HISTORY:
+            LAST_UMA_IMAGES.pop(0)
+
+        embed = discord.Embed(
+            title="🏇 Umamusume",
+            color=discord.Color.purple()
+        )
+        embed.set_image(url=image_url)
+
+        post_id = post.get("id")
+        if post_id:
+            embed.add_field(
+                name="Source",
+                value=f"https://danbooru.donmai.us/posts/{post_id}",
+                inline=False
+            )
+
+        await ctx.send(embed=embed)
+
+    except Exception as e:
+        print(f"[uma error] {type(e).__name__}: {e}", flush=True)
         await ctx.send(f"❌ Erreur API : {type(e).__name__}")
 
 @bot.command(name="Nahidwin")
