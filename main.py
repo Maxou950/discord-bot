@@ -345,36 +345,62 @@ async def shame(ctx):
         return await ctx.send("❌ Tu dois répondre à un message pour utiliser `!shame`.")
 
     try:
-        msg = await ctx.channel.fetch_message(ctx.message.reference.message_id)
-    except Exception:
-        return await ctx.send("❌ Impossible de récupérer le message.")
+        ref = ctx.message.reference
+        msg = ref.resolved
 
-    auteur = msg.author
-    contenu = msg.content if msg.content else "[Message sans texte]"
+        if msg is None:
+            msg = await ctx.channel.fetch_message(ref.message_id)
 
-    embed = discord.Embed(
-        title="📢 SHAME",
-        description=(
-            f"💀 Regardez ce qu’a dit {auteur.mention} :\n\n"
-            f"> {contenu}\n\n"
-            f"🔥 Insultez-le immédiatement."
-        ),
-        color=discord.Color.dark_red()
-    )
+        if not isinstance(msg, discord.Message):
+            return await ctx.send("❌ Impossible de récupérer le message répondu.")
 
-    embed.set_footer(
-        text=f"Shame lancé par {ctx.author}",
-        icon_url=getattr(ctx.author.avatar, 'url', discord.Embed.Empty)
-    )
+        auteur = msg.author
+        contenu = msg.content.strip() if msg.content else "[Message sans texte]"
 
-    await ctx.send(content="@here", embed=embed)
+        embed = discord.Embed(
+            title="📢 SHAME",
+            description=(
+                f"💀 Regardez ce qu’a dit {auteur.mention} :\n\n"
+                f"```{contenu}```\n"
+                f"🔥 Insultez-le immédiatement."
+            ),
+            color=discord.Color.dark_red()
+        )
+
+        embed.add_field(
+            name="Message original",
+            value=f"[Aller au message]({msg.jump_url})",
+            inline=False
+        )
+
+        embed.set_footer(
+            text=f"Shame lancé par {ctx.author}",
+            icon_url=ctx.author.display_avatar.url
+        )
+
+        await ctx.send(
+            content="@here",
+            embed=embed,
+            allowed_mentions=discord.AllowedMentions(
+                everyone=True,
+                users=True,
+                roles=True,
+                replied_user=False
+            )
+        )
+
+    except Exception as e:
+        print(f"[shame error] {e}")
+        await ctx.send(f"❌ Erreur dans `!shame` : `{e}`")
 
 
 @shame.error
 async def shame_error(ctx, error):
     if isinstance(error, commands.CommandOnCooldown):
-        await ctx.send(f"⏳ Doucement… réessaie dans {round(error.retry_after, 1)}s.")
-
+        await ctx.send(f"⏳ Doucement... réessaie dans {round(error.retry_after, 1)}s.")
+    else:
+        print(f"[shame cooldown/other error] {error}")
+        await ctx.send(f"❌ Erreur `!shame` : `{error}`")
 
 @bot.command()
 async def insulte_random(ctx):
