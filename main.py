@@ -548,29 +548,29 @@ async def roulette(ctx, *membres: discord.Member):
 @bot.command()
 @commands.cooldown(1, 5, commands.BucketType.user)
 async def femboy(ctx):
+    """Envoie une image femboy via Danbooru"""
+
     try:
-        url = "https://femboyfinder.firestreaker2.gg/api/femboy"
-        print(f"[femboy] appel API: {url}")
+        url = "https://danbooru.donmai.us/posts.json?tags=femboy+rating:g&limit=20"
 
         async with aiohttp.ClientSession() as session:
-            async with session.get(url) as response:
-                status = response.status
-                text = await response.text()
-
-                print(f"[femboy] status: {status}")
-                print(f"[femboy] réponse brute: {text[:500]}")
-
-                if status != 200:
-                    return await ctx.send(f"❌ API indisponible ({status})")
+            async with session.get(
+                url,
+                headers={"User-Agent": "HirashiBot/1.0"}
+            ) as response:
+                if response.status != 200:
+                    text = await response.text()
+                    print(f"[femboy] status={response.status} body={text[:300]}", flush=True)
+                    return await ctx.send(f"❌ API indisponible ({response.status})")
 
                 data = await response.json()
 
-        print(f"[femboy] json: {data}")
-
-        if data.get("error"):
+        if not data:
             return await ctx.send("❌ Aucun résultat trouvé.")
 
-        image_url = data.get("url")
+        post = random.choice(data)
+
+        image_url = post.get("file_url") or post.get("large_file_url")
         if not image_url:
             return await ctx.send("❌ Image introuvable.")
 
@@ -580,13 +580,18 @@ async def femboy(ctx):
         )
         embed.set_image(url=image_url)
 
-        if data.get("source"):
-            embed.add_field(name="Source", value=data["source"], inline=False)
+        post_id = post.get("id")
+        if post_id:
+            embed.add_field(
+                name="Source",
+                value=f"https://danbooru.donmai.us/posts/{post_id}",
+                inline=False
+            )
 
         await ctx.send(embed=embed)
 
     except Exception as e:
-        print(f"[femboy error] {type(e).__name__}: {e}")
+        print(f"[femboy error] {type(e).__name__}: {e}", flush=True)
         await ctx.send(f"❌ Erreur API : {type(e).__name__}")
 
 @bot.command(name="Nahidwin")
