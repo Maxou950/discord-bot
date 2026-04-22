@@ -108,8 +108,8 @@ UMA_BLACKLIST = {
 }
 
 ALLOWED_INVITE_USERS = {
-    1278501132771000320, #Krakotte
-    504958077305487371, #Maxou
+    1278501132771000320,  # Krakotte
+    504958077305487371,   # Maxou
 }
 
 def extract_recent_femboy_character(tag_string: str):
@@ -143,7 +143,6 @@ async def on_member_join(member):
     elif member.bot:
         print(f"[INFO] Bot whitelisté autorisé: {member} (id={member.id})")
 
-
 @bot.event
 async def on_message(message):
     if message.author.bot:
@@ -165,27 +164,21 @@ async def on_message(message):
         except Exception as e:
             print(f"[timeout] {e}")
 
-if ("discord.gg" in message.content or "discord.com/invite" in message.content) and message.channel.id != PARTENARIAT_CHANNEL_ID:
-    user_role_ids = {role.id for role in message.author.roles}
+    if ("discord.gg" in message.content or "discord.com/invite" in message.content) and message.channel.id != PARTENARIAT_CHANNEL_ID:
+        is_allowed_inviter = message.author.id in ALLOWED_INVITE_USERS
 
-    is_allowed_inviter = (
-        message.author.id in ALLOWED_INVITE_USERS
-        or bool(user_role_ids & ALLOWED_INVITE_ROLE_IDS)
-    )
-
-    if not is_allowed_inviter:
-        try:
-            await message.delete()
-            embed = discord.Embed(
-                description=f"🔗 {message.author.mention} : les liens Discord sont interdits ici.",
-                color=discord.Color.orange()
-            )
-            await message.channel.send(embed=embed)
-        except Exception as e:
-            print(f"[delete link] {e}")
+        if not is_allowed_inviter:
+            try:
+                await message.delete()
+                embed = discord.Embed(
+                    description=f"🔗 {message.author.mention} : les liens Discord sont interdits ici.",
+                    color=discord.Color.orange()
+                )
+                await message.channel.send(embed=embed)
+            except Exception as e:
+                print(f"[delete link] {e}")
 
     await bot.process_commands(message)
-
 
 @bot.command()
 @commands.has_permissions(moderate_members=True)
@@ -217,7 +210,6 @@ async def unwarn(ctx, membre: discord.Member):
     )
 
     await ctx.send(embed=embed)
-
 
 @bot.command()
 @commands.has_permissions(moderate_members=True)
@@ -284,7 +276,6 @@ async def warn(ctx, membre: discord.Member, *, reason: str = "Aucune raison four
             )
             await ctx.send(embed=err_embed)
 
-
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def unlock(ctx):
@@ -296,7 +287,6 @@ async def unlock(ctx):
         color=discord.Color.green()
     )
     await ctx.send(embed=embed)
-
 
 @bot.command()
 @commands.has_permissions(ban_members=True)
@@ -310,7 +300,6 @@ async def ban(ctx, membre: discord.Member, *, reason=""):
     embed.set_footer(text=f"Banni par {ctx.author}")
     await ctx.send(embed=embed)
 
-
 @bot.command()
 @commands.has_permissions(kick_members=True)
 async def kick(ctx, membre: discord.Member, *, reason=""):
@@ -323,7 +312,6 @@ async def kick(ctx, membre: discord.Member, *, reason=""):
     embed.set_footer(text=f"Kické par {ctx.author}")
     await ctx.send(embed=embed)
 
-
 @bot.command()
 @commands.has_permissions(manage_messages=True)
 async def clear(ctx, nombre: int):
@@ -333,7 +321,6 @@ async def clear(ctx, nombre: int):
         color=discord.Color.dark_gold()
     )
     await ctx.send(embed=embed, delete_after=3)
-
 
 @bot.command()
 @commands.has_permissions(manage_messages=True)
@@ -348,7 +335,6 @@ async def clear_user(ctx, membre: discord.Member, nombre: int = 10):
     )
     await ctx.send(embed=embed, delete_after=3)
 
-
 @bot.command()
 @commands.has_permissions(moderate_members=True)
 async def mute(ctx, membre: discord.Member, duree: int = 300):
@@ -358,7 +344,6 @@ async def mute(ctx, membre: discord.Member, duree: int = 300):
         color=discord.Color.greyple()
     )
     await ctx.send(embed=embed)
-
 
 @bot.command()
 @commands.has_permissions(moderate_members=True)
@@ -370,20 +355,17 @@ async def unmute(ctx, membre: discord.Member):
     )
     await ctx.send(embed=embed)
 
-
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def add_blacklist(ctx, membre: discord.Member):
     BLACKLIST_USERS.add(membre.id)
     await ctx.send(f"🚫 {membre.mention} a été **ajouté** à la blacklist (anti-join).")
 
-
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def remove_blacklist(ctx, membre: discord.Member):
     BLACKLIST_USERS.discard(membre.id)
     await ctx.send(f"✅ {membre.mention} a été **retiré** de la blacklist (anti-join).")
-
 
 @bot.command()
 @commands.has_permissions(administrator=True)
@@ -393,7 +375,6 @@ async def show_blacklist(ctx):
 
     noms = [f"<@{uid}>" for uid in BLACKLIST_USERS]
     await ctx.send("🚫 **Blacklist (anti-join) :**\n" + "\n".join(noms))
-
 
 ROASTS = [
     "Skillisue.",
@@ -409,7 +390,6 @@ ROASTS = [
     "Gemme pale et Noir"
 ]
 
-
 @bot.command()
 async def insulte(ctx, membre: discord.Member):
     embed = discord.Embed(
@@ -417,7 +397,6 @@ async def insulte(ctx, membre: discord.Member):
         color=discord.Color.magenta()
     )
     await ctx.send(embed=embed)
-
 
 @bot.command()
 @commands.cooldown(1, 10, commands.BucketType.user)
@@ -476,7 +455,6 @@ async def shame(ctx):
         print(f"[shame error] {e}")
         await ctx.send(f"❌ Erreur dans `!shame` : `{e}`")
 
-
 @shame.error
 async def shame_error(ctx, error):
     if isinstance(error, commands.CommandOnCooldown):
@@ -484,7 +462,6 @@ async def shame_error(ctx, error):
     else:
         print(f"[shame cooldown/other error] {error}")
         await ctx.send(f"❌ Erreur `!shame` : `{error}`")
-
 
 @bot.command()
 async def insulte_random(ctx):
@@ -499,7 +476,6 @@ async def insulte_random(ctx):
     )
     await ctx.send(embed=embed)
 
-
 @bot.command()
 async def cat(ctx):
     embed = discord.Embed(
@@ -509,7 +485,6 @@ async def cat(ctx):
     )
     embed.set_image(url="https://media.tenor.com/Bg3ShfbkKJwAAAAC/rigby-cat-rigby.gif")
     await ctx.send(embed=embed)
-
 
 @bot.command()
 async def skillissue(ctx):
@@ -526,7 +501,6 @@ async def skillissue(ctx):
     embed.set_image(url=f"attachment://{chosen}")
 
     await ctx.send(embed=embed, file=file)
-
 
 @bot.command()
 @commands.has_permissions(administrator=True)
@@ -570,7 +544,6 @@ async def nuke(ctx):
         ),
         color=discord.Color.green()
     ))
-
 
 @bot.command()
 @commands.has_permissions(administrator=True)
@@ -625,7 +598,6 @@ async def roulette(ctx, *membres: discord.Member):
         "Il est réduit au silence pendant 10 minutes 😈"
     )
 
-
 @bot.command()
 @commands.cooldown(1, 5, commands.BucketType.user)
 async def femboy(ctx):
@@ -635,8 +607,6 @@ async def femboy(ctx):
 
     try:
         url = "https://danbooru.donmai.us/posts.json"
-
-        # On mélange plusieurs lots pour avoir plus de variété
         all_posts = []
 
         async with aiohttp.ClientSession() as session:
@@ -665,7 +635,6 @@ async def femboy(ctx):
         if not all_posts:
             return await ctx.send("❌ Aucun résultat trouvé.")
 
-        # Déduplication brute par id
         seen_ids = set()
         unique_posts = []
         for post in all_posts:
@@ -675,7 +644,6 @@ async def femboy(ctx):
             seen_ids.add(pid)
             unique_posts.append(post)
 
-        # 1er filtre : éviter images récentes + personnages récents
         posts_valides = []
 
         for post in unique_posts:
@@ -698,7 +666,6 @@ async def femboy(ctx):
 
             posts_valides.append(post)
 
-        # 2e filtre : si trop strict, on garde juste le filtre image
         if not posts_valides:
             for post in unique_posts:
                 image_url = post.get("file_url") or post.get("large_file_url")
@@ -714,7 +681,6 @@ async def femboy(ctx):
 
                 posts_valides.append(post)
 
-        # 3e secours : on reset l’historique image
         if not posts_valides:
             LAST_FEMBOY_IMAGES.clear()
             LAST_FEMBOY_CHARACTERS.clear()
@@ -911,7 +877,6 @@ async def nahidwin(ctx):
 
     await ctx.send(embed=embed, file=file)
 
-
 @bot.command(name="help")
 async def help_command(ctx):
     e = discord.Embed(title="🛡️ Commandes du bot", color=discord.Color.blue())
@@ -925,12 +890,12 @@ async def help_command(ctx):
     e.add_field(name="🤬 !insulte @membre", value="Envoie une insulte fun", inline=False)
     e.add_field(name="📢 !shame", value="Répond à un message pour afficher sa honte avec @here", inline=False)
     e.add_field(name="💖 !femboy", value="Envoie une image via l’API femboy", inline=False)
+    e.add_field(name="🏇 !uma [personnage]", value="Envoie une image Umamusume. Ex : `!uma oguri`", inline=False)
     e.add_field(name="🎯 !insulte_random", value="Roast un membre au hasard", inline=False)
     e.add_field(name="🐈 !cat / 💢 !skillissue", value="Fun/Images", inline=False)
     e.add_field(name="🔫 !roulette @membre1 @membre2 ...", value="Mute un membre au hasard parmi les participants", inline=False)
     e.add_field(name="📸 !Nahidwin", value="Envoie une image Nah I'd win au hasard", inline=False)
     await ctx.send(embed=e)
-
 
 @bot.event
 async def on_ready():
@@ -938,7 +903,6 @@ async def on_ready():
     print("📜 Commandes chargées :", [command.name for command in bot.commands])
     activity = discord.Game("Jerkmate | Ranked")
     await bot.change_presence(status=discord.Status.online, activity=activity)
-
 
 while True:
     try:
