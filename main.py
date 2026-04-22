@@ -107,6 +107,11 @@ UMA_BLACKLIST = {
     "lineart"
 }
 
+ALLOWED_INVITE_USERS = {
+    1278501132771000320, #Krakotte
+    504958077305487371, #Maxou
+}
+
 def extract_recent_femboy_character(tag_string: str):
     tags = set(tag_string.split())
     found = tags & FEMBOY_CHARACTER_TAGS
@@ -161,6 +166,14 @@ async def on_message(message):
             print(f"[timeout] {e}")
 
     if ("discord.gg" in message.content or "discord.com/invite" in message.content) and message.channel.id != PARTENARIAT_CHANNEL_ID:
+    user_role_ids = {role.id for role in message.author.roles}
+
+    is_allowed_inviter = (
+        message.author.id in ALLOWED_INVITE_USERS
+        or bool(user_role_ids & ALLOWED_INVITE_ROLE_IDS)
+    )
+
+    if not is_allowed_inviter:
         try:
             await message.delete()
             embed = discord.Embed(
