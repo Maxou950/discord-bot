@@ -165,15 +165,8 @@ async def on_message(message):
         except Exception as e:
             print(f"[timeout] {e}")
 
-    if ("discord.gg" in message.content or "discord.com/invite" in message.content) and message.channel.id != PARTENARIAT_CHANNEL_ID:
-    user_role_ids = {role.id for role in message.author.roles}
-
-    is_allowed_inviter = (
-        message.author.id in ALLOWED_INVITE_USERS
-        or bool(user_role_ids & ALLOWED_INVITE_ROLE_IDS)
-    )
-
-    if not is_allowed_inviter:
+   if ("discord.gg" in message.content or "discord.com/invite" in message.content) and message.channel.id != PARTENARIAT_CHANNEL_ID:
+    if message.author.id not in ALLOWED_INVITE_USERS:
         try:
             await message.delete()
             embed = discord.Embed(
