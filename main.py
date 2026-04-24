@@ -58,14 +58,6 @@ LAST_FEMBOY_CHARACTERS = []
 MAX_FEMBOY_CHARACTER_HISTORY = 12
 
 FEMBOY_TAGS = [
-    "trap rating:g",
-    "trap solo rating:g",
-    "trap 1boy rating:g",
-    "otokonoko rating:g",
-    "feminine_male rating:g"
-]
-
-FEMBOY_TAGS = [
     "trap",
     "trap solo",
     "otokonoko",
