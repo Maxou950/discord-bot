@@ -65,22 +65,17 @@ FEMBOY_TAGS = [
     "feminine_male rating:g"
 ]
 
-FEMBOY_CHARACTER_TAGS = {
-    "astolfo",
-    "felix_argyle",
-    "hideyoshi_kinoshita",
-    "hideri_kanzaki",
-    "saika_totsuka",
-    "nagisa_shiota",
-    "gasper_vladi",
-    "rimuru_tempest",
-    "utsuho_(femboy_heaven)",
-}
+FEMBOY_TAGS = [
+    "trap",
+    "trap solo",
+    "otokonoko",
+    "feminine_male"
+]
 
 LAST_UMA_IMAGES = []
 MAX_UMA_HISTORY = 40
 
-UMA_BASE_TAGS = "umamusume rating:g"
+UMA_BASE_TAGS = "umamusume"
 
 UMA_CHARACTER_TAGS = {
     "oguri": "oguri_cap_(umamusume)",
@@ -606,7 +601,7 @@ async def femboy(ctx):
     global LAST_FEMBOY_IMAGES, LAST_FEMBOY_CHARACTERS
 
     try:
-        url = "https://danbooru.donmai.us/posts.json"
+        url = "https://safebooru.org/index.php"
         all_posts = []
 
         async with aiohttp.ClientSession() as session:
@@ -616,10 +611,14 @@ async def femboy(ctx):
                 async with session.get(
                     url,
                     params={
-                        "tags": tags,
-                        "limit": 100,
-                        "page": random.randint(1, 30)
-                    },
+    "page": "dapi",
+    "s": "post",
+    "q": "index",
+    "json": 1,
+    "tags": tags,
+    "limit": 100,
+    "pid": random.randint(0, 30)
+},
                     headers={"User-Agent": "HirashiBot/1.0"}
                 ) as response:
 
@@ -752,27 +751,31 @@ async def uma(ctx, *, personnage=None):
             tags = UMA_BASE_TAGS
             titre = "🏇 Uma Musume"
 
-        url = "https://danbooru.donmai.us/posts.json"
-        print(f"[uma] tags = {tags}", flush=True)
+        url = "https://safebooru.org/index.php"
 
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                url,
-                params={
-                    "tags": tags,
-                    "limit": 100
-                },
-                headers={"User-Agent": "HirashiBot/1.0"}
-            ) as response:
+async with aiohttp.ClientSession() as session:
+    async with session.get(
+        url,
+        params={
+            "page": "dapi",
+            "s": "post",
+            "q": "index",
+            "json": 1,
+            "tags": tags,
+            "limit": 100,
+            "pid": random.randint(0, 30)
+        },
+        headers={"User-Agent": "HirashiBot/1.0"}
+    ) as response:
 
-                print(f"[uma] status = {response.status}", flush=True)
+        print(f"[uma] status = {response.status}", flush=True)
 
-                if response.status != 200:
-                    text = await response.text()
-                    print(f"[uma] body = {text[:300]}", flush=True)
-                    return await ctx.send(f"❌ API indisponible ({response.status})")
+        if response.status != 200:
+            text = await response.text()
+            print(f"[uma] body = {text[:300]}", flush=True)
+            return await ctx.send(f"❌ API indisponible ({response.status})")
 
-                data = await response.json()
+        data = await response.json(content_type=None)
 
         if not data:
             if personnage and personnage not in UMA_CHARACTER_TAGS:
