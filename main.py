@@ -596,7 +596,7 @@ async def roulette(ctx, *membres: discord.Member):
 @bot.command()
 @commands.cooldown(1, 5, commands.BucketType.user)
 async def femboy(ctx):
-    """Envoie une image femboy avec moins de doublons et moins de répétitions de perso"""
+    """Envoie une image femboy avec moins de doublons"""
 
     global LAST_FEMBOY_IMAGES, LAST_FEMBOY_CHARACTERS
 
@@ -611,23 +611,26 @@ async def femboy(ctx):
                 async with session.get(
                     url,
                     params={
-    "page": "dapi",
-    "s": "post",
-    "q": "index",
-    "json": 1,
-    "tags": tags,
-    "limit": 100,
-    "pid": random.randint(0, 30)
-},
+                        "page": "dapi",
+                        "s": "post",
+                        "q": "index",
+                        "json": 1,
+                        "tags": tags,
+                        "limit": 100,
+                        "pid": random.randint(0, 30)
+                    },
                     headers={"User-Agent": "HirashiBot/1.0"}
                 ) as response:
 
+                    print(f"[femboy] tags={tags} status={response.status}", flush=True)
+
                     if response.status != 200:
                         text = await response.text()
-                        print(f"[femboy] status={response.status} body={text[:300]}", flush=True)
+                        print(f"[femboy] body={text[:300]}", flush=True)
                         continue
 
-                    data = await response.json()
+                    data = await response.json(content_type=None)
+
                     if isinstance(data, list):
                         all_posts.extend(data)
 
@@ -636,6 +639,7 @@ async def femboy(ctx):
 
         seen_ids = set()
         unique_posts = []
+
         for post in all_posts:
             pid = post.get("id")
             if pid in seen_ids:
@@ -657,28 +661,13 @@ async def femboy(ctx):
             if image_url in LAST_FEMBOY_IMAGES:
                 continue
 
-            tag_string = post.get("tag_string", "")
+            tag_string = post.get("tags", "")
             character = extract_recent_femboy_character(tag_string)
 
             if character and character in LAST_FEMBOY_CHARACTERS:
                 continue
 
             posts_valides.append(post)
-
-        if not posts_valides:
-            for post in unique_posts:
-                image_url = post.get("file_url") or post.get("large_file_url")
-                if not image_url:
-                    continue
-
-                lower_url = image_url.lower()
-                if not any(ext in lower_url for ext in [".jpg", ".jpeg", ".png", ".webp"]):
-                    continue
-
-                if image_url in LAST_FEMBOY_IMAGES:
-                    continue
-
-                posts_valides.append(post)
 
         if not posts_valides:
             LAST_FEMBOY_IMAGES.clear()
@@ -700,7 +689,8 @@ async def femboy(ctx):
 
         post = random.choice(posts_valides)
         image_url = post.get("file_url") or post.get("large_file_url")
-        tag_string = post.get("tag_string", "")
+
+        tag_string = post.get("tags", "")
         character = extract_recent_femboy_character(tag_string)
 
         LAST_FEMBOY_IMAGES.append(image_url)
@@ -722,7 +712,7 @@ async def femboy(ctx):
         if post_id:
             embed.add_field(
                 name="Source",
-                value=f"https://danbooru.donmai.us/posts/{post_id}",
+                value=f"https://safebooru.org/index.php?page=post&s=view&id={post_id}",
                 inline=False
             )
 
@@ -753,29 +743,30 @@ async def uma(ctx, *, personnage=None):
 
         url = "https://safebooru.org/index.php"
 
-async with aiohttp.ClientSession() as session:
-    async with session.get(
-        url,
-        params={
-            "page": "dapi",
-            "s": "post",
-            "q": "index",
-            "json": 1,
-            "tags": tags,
-            "limit": 100,
-            "pid": random.randint(0, 30)
-        },
-        headers={"User-Agent": "HirashiBot/1.0"}
-    ) as response:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                url,
+                params={
+                    "page": "dapi",
+                    "s": "post",
+                    "q": "index",
+                    "json": 1,
+                    "tags": tags,
+                    "limit": 100,
+                    "pid": random.randint(0, 30)
+                },
+                headers={"User-Agent": "HirashiBot/1.0"}
+            ) as response:
 
-        print(f"[uma] status = {response.status}", flush=True)
+                print(f"[uma] tags = {tags}", flush=True)
+                print(f"[uma] status = {response.status}", flush=True)
 
-        if response.status != 200:
-            text = await response.text()
-            print(f"[uma] body = {text[:300]}", flush=True)
-            return await ctx.send(f"❌ API indisponible ({response.status})")
+                if response.status != 200:
+                    text = await response.text()
+                    print(f"[uma] body = {text[:300]}", flush=True)
+                    return await ctx.send(f"❌ API indisponible ({response.status})")
 
-        data = await response.json(content_type=None)
+                data = await response.json(content_type=None)
 
         if not data:
             if personnage and personnage not in UMA_CHARACTER_TAGS:
@@ -793,7 +784,7 @@ async with aiohttp.ClientSession() as session:
             if not any(ext in lower_url for ext in [".jpg", ".jpeg", ".png", ".webp"]):
                 continue
 
-            post_tags = set(post.get("tag_string", "").split())
+            post_tags = set(post.get("tags", "").split())
 
             if post_tags & UMA_BLACKLIST:
                 continue
@@ -815,7 +806,7 @@ async with aiohttp.ClientSession() as session:
                 if not any(ext in lower_url for ext in [".jpg", ".jpeg", ".png", ".webp"]):
                     continue
 
-                post_tags = set(post.get("tag_string", "").split())
+                post_tags = set(post.get("tags", "").split())
 
                 if post_tags & UMA_BLACKLIST:
                     continue
@@ -842,7 +833,7 @@ async with aiohttp.ClientSession() as session:
         if post_id:
             embed.add_field(
                 name="Source",
-                value=f"https://danbooru.donmai.us/posts/{post_id}",
+                value=f"https://safebooru.org/index.php?page=post&s=view&id={post_id}",
                 inline=False
             )
 
