@@ -64,6 +64,17 @@ FEMBOY_TAGS = [
     "feminine_male"
 ]
 
+FEMBOY_CHARACTER_TAGS = {
+    "astolfo",
+    "felix_argyle",
+    "hideyoshi_kinoshita",
+    "hideri_kanzaki",
+    "saika_totsuka",
+    "nagisa_shiota",
+    "gasper_vladi",
+    "rimuru_tempest"
+}
+
 LAST_UMA_IMAGES = []
 MAX_UMA_HISTORY = 40
 
