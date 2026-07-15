@@ -94,7 +94,8 @@ UMA_CHARACTER_TAGS = {
     "goldship": "gold_ship_(umamusume)",
     "rice": "rice_shower_(umamusume)",
     "kita": "kitasan_black_(umamusume)",
-    "satono": "satono_diamond_(umamusume)"
+    "satono": "satono_diamond_(umamusume)",
+    "opera" : "t.m._opera_o_(umamusume)"
 }
 
 UMA_BLACKLIST = {
