@@ -191,25 +191,24 @@ def fun_role_or_admin():
 # Configuration des boîtes de dialogue style Undertale / Deltarune
 # ---------------------------------------------------------------------------
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DIALOGUE_WIDTH = 760
 DIALOGUE_MIN_HEIGHT = 220
 DIALOGUE_MARGIN = 12
 DIALOGUE_PORTRAIT_SIZE = 150
 
-# Place les portraits dans : assets/portraits/
-# Exemple : assets/portraits/ralsei.png
-PORTRAIT_FOLDER = os.path.join("assets", "portraits")
+PORTRAIT_FOLDER = os.path.join(BASE_DIR, "assets", "portraits")
 
-# Police pixel facultative :
-# assets/fonts/determination.ttf
-# Si le fichier n'existe pas, le bot utilise une police système.
-DIALOGUE_FONT_PATH = os.path.join("assets", "fonts", "determination.ttf")
+# Le code essaie d'abord deltarune.ttf, puis determination.ttf.
+DIALOGUE_FONT_PATHS = [
+    os.path.join(BASE_DIR, "assets", "fonts", "deltarune.ttf"),
+    os.path.join(BASE_DIR, "assets", "fonts", "determination.ttf"),
+]
 
 
-def load_dialogue_font(size: int) -> ImageFont.FreeTypeFont:
-    """Charge une police pixel si elle existe, sinon utilise une police de secours."""
-    candidates = [
-        DIALOGUE_FONT_PATH,
+def load_dialogue_font(size: int) -> ImageFont.ImageFont:
+    """Charge la police du projet, puis une police de secours."""
+    candidates = DIALOGUE_FONT_PATHS + [
         "DejaVuSansMono.ttf",
         "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
         "C:/Windows/Fonts/consola.ttf",
@@ -225,19 +224,20 @@ def load_dialogue_font(size: int) -> ImageFont.FreeTypeFont:
 
 
 def find_portrait(personnage: Optional[str]) -> Optional[str]:
-    """Cherche automatiquement le portrait PNG/JPG/WEBP correspondant."""
-    if not personnage:
+    """Trouve un portrait sans tenir compte des majuscules/minuscules."""
+    if not personnage or not os.path.isdir(PORTRAIT_FOLDER):
         return None
 
-    safe_name = "".join(
-        char for char in personnage.lower().strip()
-        if char.isalnum() or char in ("_", "-")
-    )
+    wanted_name = personnage.strip().lower()
 
-    for extension in (".png", ".jpg", ".jpeg", ".webp"):
-        path = os.path.join(PORTRAIT_FOLDER, safe_name + extension)
-        if os.path.isfile(path):
-            return path
+    for filename in os.listdir(PORTRAIT_FOLDER):
+        name, extension = os.path.splitext(filename)
+
+        if extension.lower() not in (".png", ".jpg", ".jpeg", ".webp"):
+            continue
+
+        if name.lower() == wanted_name:
+            return os.path.join(PORTRAIT_FOLDER, filename)
 
     return None
 
@@ -266,18 +266,18 @@ def wrap_dialogue_text(
 
             if bbox[2] - bbox[0] <= max_width:
                 current_line = candidate
-            else:
-                if current_line:
-                    result.append(current_line)
+                continue
 
-                # Coupe aussi les mots exceptionnellement trop longs.
-                bbox_word = draw.textbbox((0, 0), word, font=font)
-                if bbox_word[2] - bbox_word[0] <= max_width:
-                    current_line = word
-                else:
-                    chunks = textwrap.wrap(word, width=18) or [word]
-                    result.extend(chunks[:-1])
-                    current_line = chunks[-1]
+            if current_line:
+                result.append(current_line)
+
+            bbox_word = draw.textbbox((0, 0), word, font=font)
+            if bbox_word[2] - bbox_word[0] <= max_width:
+                current_line = word
+            else:
+                chunks = textwrap.wrap(word, width=18) or [word]
+                result.extend(chunks[:-1])
+                current_line = chunks[-1]
 
         if current_line:
             result.append(current_line)
@@ -285,16 +285,32 @@ def wrap_dialogue_text(
     return result or [""]
 
 
-async def create_dialogue_image(
+def create_dialogue_image(
     texte: str,
     personnage: Optional[str] = None,
-    avatar_url: Optional[str] = None
+    avatar_bytes: Optional[bytes] = None
 ) -> io.BytesIO:
-    """Crée une boîte de dialogue noire et blanche inspirée d'Undertale/Deltarune."""
+    """
+    Crée la boîte de dialogue.
+    - personnage fourni : utilise son PNG dans assets/portraits ;
+    - aucun personnage : utilise l'avatar Discord reçu dans avatar_bytes.
+    """
     font = load_dialogue_font(34)
-    small_font = load_dialogue_font(23)
 
-    has_portrait = find_portrait(personnage) is not None
+    portrait = None
+
+    if personnage:
+        portrait_path = find_portrait(personnage)
+        if portrait_path is None:
+            raise FileNotFoundError(
+                f"Aucun portrait trouvé pour '{personnage}' dans assets/portraits."
+            )
+        portrait = Image.open(portrait_path).convert("RGBA")
+    elif avatar_bytes:
+        portrait = Image.open(io.BytesIO(avatar_bytes)).convert("RGBA")
+
+    # Il y a normalement toujours un portrait : PNG ou avatar Discord.
+    has_portrait = portrait is not None
     text_x = 205 if has_portrait else 58
     text_max_width = DIALOGUE_WIDTH - text_x - 38
 
@@ -311,61 +327,42 @@ async def create_dialogue_image(
     image = Image.new("RGB", (DIALOGUE_WIDTH, content_height), "black")
     draw = ImageDraw.Draw(image)
 
-    # Double contour blanc/noir pour obtenir un cadre net.
     draw.rectangle(
-        (DIALOGUE_MARGIN, DIALOGUE_MARGIN,
-         DIALOGUE_WIDTH - DIALOGUE_MARGIN - 1,
-         content_height - DIALOGUE_MARGIN - 1),
+        (
+            DIALOGUE_MARGIN,
+            DIALOGUE_MARGIN,
+            DIALOGUE_WIDTH - DIALOGUE_MARGIN - 1,
+            content_height - DIALOGUE_MARGIN - 1,
+        ),
         outline="white",
-        width=6
+        width=6,
     )
     draw.rectangle(
-        (DIALOGUE_MARGIN + 8, DIALOGUE_MARGIN + 8,
-         DIALOGUE_WIDTH - DIALOGUE_MARGIN - 9,
-         content_height - DIALOGUE_MARGIN - 9),
+        (
+            DIALOGUE_MARGIN + 8,
+            DIALOGUE_MARGIN + 8,
+            DIALOGUE_WIDTH - DIALOGUE_MARGIN - 9,
+            content_height - DIALOGUE_MARGIN - 9,
+        ),
         outline="black",
-        width=3
+        width=3,
     )
 
-    portrait = None
-
-try:
-    if personnage:
-        portrait_path = find_portrait(personnage)
-
-        if portrait_path:
-            portrait = Image.open(portrait_path).convert("RGBA")
-
-    elif avatar_url:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(avatar_url) as response:
-                avatar_bytes = await response.read()
-
-        portrait = Image.open(io.BytesIO(avatar_bytes)).convert("RGBA")
-
-    if portrait:
+    if portrait is not None:
+        # NEAREST garde le côté pixel art pour les PNG et pixelise aussi l'avatar.
         portrait.thumbnail(
             (DIALOGUE_PORTRAIT_SIZE, DIALOGUE_PORTRAIT_SIZE),
-            Image.Resampling.NEAREST
+            Image.Resampling.NEAREST,
         )
 
         px = 38 + (DIALOGUE_PORTRAIT_SIZE - portrait.width) // 2
         py = (content_height - portrait.height) // 2
-
         image.paste(portrait, (px, py), portrait)
-
-except Exception as error:
-    print(f"[dialogue portrait error] {error}")
 
     y = 43
     for index, line in enumerate(lines):
         prefix = "* " if index == 0 else "  "
-        draw.text(
-            (text_x, y),
-            prefix + line,
-            font=font,
-            fill="white"
-        )
+        draw.text((text_x, y), prefix + line, font=font, fill="white")
         y += line_height
 
     buffer = io.BytesIO()
@@ -1341,7 +1338,7 @@ async def say(interaction: discord.Interaction, message: str):
 @fun_role_or_admin()
 @app_commands.describe(
     texte="Le texte à afficher",
-    personnage="Nom du portrait placé dans assets/portraits, ex : ralsei"
+    personnage="Facultatif : nom du PNG dans assets/portraits, ex. ralsei"
 )
 @app_commands.checks.cooldown(1, 5.0)
 async def dialogue(
@@ -1349,7 +1346,10 @@ async def dialogue(
     texte: str,
     personnage: Optional[str] = None
 ):
-    if not texte.strip():
+    texte = texte.strip()
+    personnage = personnage.strip() if personnage else None
+
+    if not texte:
         return await interaction.response.send_message(
             "❌ Le texte ne peut pas être vide.",
             ephemeral=True
@@ -1364,21 +1364,29 @@ async def dialogue(
     await interaction.response.defer()
 
     try:
-        iimage_buffer = await create_dialogue_image(
-    texte=texte.strip(),
-    personnage=personnage,
-    avatar_url=None if personnage else interaction.user.display_avatar.url
-)
+        avatar_bytes = None
 
-        discord_file = discord.File(
-            image_buffer,
-            filename="dialogue.png"
+        # Aucun personnage choisi : on récupère l'avatar de l'utilisateur.
+        if personnage is None:
+            avatar_asset = interaction.user.display_avatar.with_size(256)
+            avatar_bytes = await avatar_asset.read()
+
+        image_buffer = create_dialogue_image(
+            texte=texte,
+            personnage=personnage,
+            avatar_bytes=avatar_bytes
         )
 
+        discord_file = discord.File(image_buffer, filename="dialogue.png")
         await interaction.followup.send(file=discord_file)
 
+    except FileNotFoundError as error:
+        await interaction.followup.send(
+            f"❌ {error}",
+            ephemeral=True
+        )
     except Exception as error:
-        print(f"[dialogue error] {type(error).__name__}: {error}")
+        print(f"[dialogue error] {type(error).__name__}: {error}", flush=True)
         await interaction.followup.send(
             f"❌ Impossible de créer le dialogue : `{type(error).__name__}`",
             ephemeral=True
