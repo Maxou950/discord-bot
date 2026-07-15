@@ -4,6 +4,7 @@ import random
 import asyncio
 import io
 import textwrap
+import re
 import discord
 import aiohttp
 from typing import Optional
@@ -371,6 +372,80 @@ def create_dialogue_image(
     return buffer
 
 
+
+# ---------------------------------------------------------------------------
+# Conversion automatique des liens sociaux pour les embeds Discord
+# ---------------------------------------------------------------------------
+
+SOCIAL_DOMAIN_REPLACEMENTS = {
+    "twitter.com": "fxtwitter.com",
+    "www.twitter.com": "fxtwitter.com",
+    "mobile.twitter.com": "fxtwitter.com",
+    "x.com": "fixupx.com",
+    "www.x.com": "fixupx.com",
+    "mobile.x.com": "fixupx.com",
+    "tiktok.com": "vxtiktok.com",
+    "www.tiktok.com": "vxtiktok.com",
+    "m.tiktok.com": "vxtiktok.com",
+    "vm.tiktok.com": "vxtiktok.com",
+    "vt.tiktok.com": "vxtiktok.com",
+    "instagram.com": "ddinstagram.com",
+    "www.instagram.com": "ddinstagram.com",
+    "bsky.app": "fxbsky.app",
+    "www.bsky.app": "fxbsky.app",
+}
+
+SOCIAL_URL_PATTERN = re.compile(
+    r"https?://[^\s<>]+",
+    re.IGNORECASE
+)
+
+
+def convert_social_url(url: str) -> str:
+    """Convertit un lien social vers un domaine qui génère un meilleur embed."""
+    trailing_characters = ""
+
+    while url and url[-1] in ".,;:!?)]}":
+        trailing_characters = url[-1] + trailing_characters
+        url = url[:-1]
+
+    match = re.match(
+        r"^(https?://)([^/]+)(/.*)?$",
+        url,
+        re.IGNORECASE
+    )
+
+    if not match:
+        return url + trailing_characters
+
+    protocol, domain, path = match.groups()
+    replacement = SOCIAL_DOMAIN_REPLACEMENTS.get(domain.lower())
+
+    if not replacement:
+        return url + trailing_characters
+
+    return f"{protocol}{replacement}{path or ''}{trailing_characters}"
+
+
+def convert_social_links(content: str) -> tuple[str, bool]:
+    """Convertit tous les liens sociaux présents dans un message."""
+    converted_any_link = False
+
+    def replace_url(match: re.Match) -> str:
+        nonlocal converted_any_link
+
+        original_url = match.group(0)
+        converted_url = convert_social_url(original_url)
+
+        if converted_url != original_url:
+            converted_any_link = True
+
+        return converted_url
+
+    converted_content = SOCIAL_URL_PATTERN.sub(replace_url, content)
+    return converted_content, converted_any_link
+
+
 # ---------------------------------------------------------------------------
 # Events (inchangés, ce ne sont pas des commandes)
 # ---------------------------------------------------------------------------
@@ -401,42 +476,104 @@ async def on_member_join(member):
 
 
 @bot.event
-async def on_message(message):
+async def on_message(message: discord.Message):
+    # Ignore les messages des bots pour éviter les boucles.
     if message.author.bot:
         return
 
+    # -----------------------------------------------------------------------
+    # Anti-spam
+    # -----------------------------------------------------------------------
+
     uid = message.author.id
-    now = asyncio.get_event_loop().time()
+    now = asyncio.get_running_loop().time()
+
     user_message_count.setdefault(uid, []).append(now)
-    user_message_count[uid] = [t for t in user_message_count[uid] if now - t < interval]
+    user_message_count[uid] = [
+        timestamp
+        for timestamp in user_message_count[uid]
+        if now - timestamp < interval
+    ]
 
     if len(user_message_count[uid]) > spam_threshold:
         try:
-            await message.author.timeout(timedelta(seconds=60), reason="Spam")
+            await message.author.timeout(
+                timedelta(seconds=60),
+                reason="Spam"
+            )
+
             embed = discord.Embed(
                 description=f"🚫 {message.author.mention} a été mute 60s pour spam.",
                 color=discord.Color.red()
             )
             await message.channel.send(embed=embed)
-        except Exception as e:
-            print(f"[timeout] {e}")
 
-    if ("discord.gg" in message.content or "discord.com/invite" in message.content) and message.channel.id != PARTENARIAT_CHANNEL_ID:
-        is_allowed_inviter = message.author.id in ALLOWED_INVITE_USERS
+        except Exception as error:
+            print(f"[timeout error] {error}")
 
-        if not is_allowed_inviter:
-            try:
-                await message.delete()
-                embed = discord.Embed(
-                    description=f"🔗 {message.author.mention} : les liens Discord sont interdits ici.",
-                    color=discord.Color.orange()
-                )
-                await message.channel.send(embed=embed)
-            except Exception as e:
-                print(f"[delete link] {e}")
+    # -----------------------------------------------------------------------
+    # Blocage des invitations Discord
+    # -----------------------------------------------------------------------
 
-    # Plus besoin de bot.process_commands ici puisqu'il n'y a plus de commandes
-    # préfixées à traiter (tout est passé en slash commands).
+    message_content_lower = message.content.lower()
+
+    contains_discord_invite = (
+        "discord.gg" in message_content_lower
+        or "discord.com/invite" in message_content_lower
+    )
+
+    if (
+        contains_discord_invite
+        and message.channel.id != PARTENARIAT_CHANNEL_ID
+        and message.author.id not in ALLOWED_INVITE_USERS
+    ):
+        try:
+            await message.delete()
+
+            embed = discord.Embed(
+                description=(
+                    f"🔗 {message.author.mention} : "
+                    "les liens Discord sont interdits ici."
+                ),
+                color=discord.Color.orange()
+            )
+            await message.channel.send(embed=embed)
+
+        except Exception as error:
+            print(f"[delete invite error] {error}")
+
+        return
+
+    # -----------------------------------------------------------------------
+    # Conversion des liens sociaux
+    # -----------------------------------------------------------------------
+
+    converted_content, converted_any_link = convert_social_links(
+        message.content
+    )
+
+    if converted_any_link:
+        try:
+            await message.edit(suppress=True)
+
+        except discord.Forbidden:
+            print(
+                "[social links] Permission « Gérer les messages » manquante : "
+                "impossible de masquer l'embed original."
+            )
+
+        except discord.HTTPException as error:
+            print(f"[social links suppress error] {error}")
+
+        try:
+            await message.reply(
+                converted_content,
+                mention_author=False,
+                allowed_mentions=discord.AllowedMentions.none()
+            )
+
+        except discord.HTTPException as error:
+            print(f"[social links reply error] {error}")
 
 
 # ---------------------------------------------------------------------------
