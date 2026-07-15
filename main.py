@@ -285,9 +285,10 @@ def wrap_dialogue_text(
     return result or [""]
 
 
-def create_dialogue_image(
+async def create_dialogue_image(
     texte: str,
-    personnage: Optional[str] = None
+    personnage: Optional[str] = None,
+    avatar_url: Optional[str] = None
 ) -> io.BytesIO:
     """Crée une boîte de dialogue noire et blanche inspirée d'Undertale/Deltarune."""
     font = load_dialogue_font(34)
@@ -326,30 +327,35 @@ def create_dialogue_image(
         width=3
     )
 
-    portrait_path = find_portrait(personnage)
+    portrait = None
 
-    if portrait_path:
-        try:
+try:
+    if personnage:
+        portrait_path = find_portrait(personnage)
+
+        if portrait_path:
             portrait = Image.open(portrait_path).convert("RGBA")
-            portrait.thumbnail(
-                (DIALOGUE_PORTRAIT_SIZE, DIALOGUE_PORTRAIT_SIZE),
-                Image.Resampling.NEAREST
-            )
 
-            # Centre le portrait dans sa zone.
-            px = 38 + (DIALOGUE_PORTRAIT_SIZE - portrait.width) // 2
-            py = (content_height - portrait.height) // 2
-            image.paste(portrait, (px, py), portrait)
-        except Exception as error:
-            print(f"[dialogue portrait error] {error}")
-    elif personnage:
-        # Nom affiché si aucun portrait correspondant n'a été trouvé.
-        draw.text(
-            (42, 47),
-            personnage[:12],
-            font=small_font,
-            fill="white"
+    elif avatar_url:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(avatar_url) as response:
+                avatar_bytes = await response.read()
+
+        portrait = Image.open(io.BytesIO(avatar_bytes)).convert("RGBA")
+
+    if portrait:
+        portrait.thumbnail(
+            (DIALOGUE_PORTRAIT_SIZE, DIALOGUE_PORTRAIT_SIZE),
+            Image.Resampling.NEAREST
         )
+
+        px = 38 + (DIALOGUE_PORTRAIT_SIZE - portrait.width) // 2
+        py = (content_height - portrait.height) // 2
+
+        image.paste(portrait, (px, py), portrait)
+
+except Exception as error:
+    print(f"[dialogue portrait error] {error}")
 
     y = 43
     for index, line in enumerate(lines):
@@ -1358,10 +1364,11 @@ async def dialogue(
     await interaction.response.defer()
 
     try:
-        image_buffer = create_dialogue_image(
-            texte=texte.strip(),
-            personnage=personnage
-        )
+        iimage_buffer = await create_dialogue_image(
+    texte=texte.strip(),
+    personnage=personnage,
+    avatar_url=None if personnage else interaction.user.display_avatar.url
+)
 
         discord_file = discord.File(
             image_buffer,
