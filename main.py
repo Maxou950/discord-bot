@@ -17,6 +17,7 @@ load_dotenv()
 TOKEN = os.getenv("TOKEN")
 PARTENARIAT_CHANNEL_ID = 1312467445881114635
 TEST_GUILD_ID = None  # ex: 1234567890123456789
+FUN_ROLE_ID = 1526959966525587666  # Remplace par l'ID du rôle « Commandes Fun »
 
 DISBOARD_ID = 302050872383242240
 MAKEITAQUOTE_ID = 949479338275913799
@@ -168,6 +169,19 @@ def extract_recent_femboy_character(tag_string: str):
     return None
 
 
+def fun_role_or_admin():
+    async def predicate(interaction: discord.Interaction) -> bool:
+        if not isinstance(interaction.user, discord.Member):
+            return False
+
+        if interaction.user.guild_permissions.administrator:
+            return True
+
+        return any(role.id == FUN_ROLE_ID for role in interaction.user.roles)
+
+    return app_commands.check(predicate)
+
+
 # ---------------------------------------------------------------------------
 # Events (inchangés, ce ne sont pas des commandes)
 # ---------------------------------------------------------------------------
@@ -248,7 +262,7 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
     elif isinstance(error, app_commands.MissingPermissions):
         msg = "❌ Tu n'as pas la permission d'utiliser cette commande."
     elif isinstance(error, app_commands.CheckFailure):
-        msg = "❌ Tu n'as pas la permission d'utiliser cette commande."
+        msg = "❌ Tu dois avoir le rôle **Commandes Fun** pour utiliser cette commande."
     else:
         print(f"[app command error] {type(error).__name__}: {error}")
         msg = f"❌ Erreur : {error}"
@@ -492,6 +506,7 @@ async def show_blacklist(interaction: discord.Interaction):
 # ---------------------------------------------------------------------------
 
 @bot.tree.command(name="insulte", description="Envoie une insulte fun à un membre.")
+@fun_role_or_admin()
 async def insulte(interaction: discord.Interaction, membre: discord.Member):
     embed = discord.Embed(
         description=f"{membre.mention}, {random.choice(ROASTS)}",
@@ -547,6 +562,7 @@ async def shame_context(interaction: discord.Interaction, message: discord.Messa
 
 
 @bot.tree.command(name="insulte_random", description="Roast un membre au hasard du serveur.")
+@fun_role_or_admin()
 async def insulte_random(interaction: discord.Interaction):
     humains = [m for m in interaction.guild.members if not m.bot and m != interaction.user]
     if not humains:
@@ -561,6 +577,7 @@ async def insulte_random(interaction: discord.Interaction):
 
 
 @bot.tree.command(name="cat", description="Envoie un chat sacré.")
+@fun_role_or_admin()
 async def cat(interaction: discord.Interaction):
     embed = discord.Embed(
         title="😺 Chat sacré",
@@ -572,6 +589,7 @@ async def cat(interaction: discord.Interaction):
 
 
 @bot.tree.command(name="skillissue", description="Skill Issue.")
+@fun_role_or_admin()
 async def skillissue(interaction: discord.Interaction):
     images = ["image4.png", "skill_issue.png"]
     chosen = random.choice(images)
@@ -692,6 +710,7 @@ async def roulette(
 
 
 @bot.tree.command(name="femboy", description="Envoie une image femboy.")
+@fun_role_or_admin()
 @app_commands.checks.cooldown(1, 5.0)
 async def femboy(interaction: discord.Interaction):
     global LAST_FEMBOY_IMAGES, LAST_FEMBOY_CHARACTERS
@@ -824,6 +843,7 @@ async def femboy(interaction: discord.Interaction):
 
 
 @bot.tree.command(name="uma", description="Envoie une image Umamusume, avec ou sans personnage précis.")
+@fun_role_or_admin()
 @app_commands.describe(personnage="Ex : oguri, teio, mcqueen, goldship, rice, kita, satono")
 @app_commands.checks.cooldown(1, 5.0)
 async def uma(interaction: discord.Interaction, personnage: Optional[str] = None):
@@ -942,8 +962,10 @@ async def uma(interaction: discord.Interaction, personnage: Optional[str] = None
         print(f"[uma error] {type(e).__name__}: {e}", flush=True)
         await interaction.followup.send(f"❌ Erreur API : {type(e).__name__}")
 
+
 @bot.tree.command(name="cailloux", description="Envoie une image Houseki no Kuni.")
-@app_commands.describe(personnage="Ex : phos, cinnabar, diamond, bort...")
+@fun_role_or_admin()
+@app_commands.describe(personnage="Ex : phos, cinnabar, diamond, bort, rutile, antarcticite")
 @app_commands.checks.cooldown(1, 5.0)
 async def cailloux(interaction: discord.Interaction, personnage: Optional[str] = None):
     await interaction.response.defer()
@@ -976,12 +998,20 @@ async def cailloux(interaction: discord.Interaction, personnage: Optional[str] =
                 headers={"User-Agent": "HirashiBot/1.0"}
             ) as response:
 
+                print(f"[cailloux] tags={tags} status={response.status}", flush=True)
+
                 if response.status != 200:
-                    return await interaction.followup.send(f"❌ API indisponible ({response.status})")
+                    return await interaction.followup.send(
+                        f"❌ API indisponible ({response.status})"
+                    )
 
                 data = await response.json(content_type=None)
 
         if not data:
+            if personnage and personnage not in HOUSEKI_CHARACTER_TAGS:
+                return await interaction.followup.send(
+                    "❌ Personnage inconnu. Exemples : `/cailloux phos`, `/cailloux cinnabar`, `/cailloux bort`"
+                )
             return await interaction.followup.send("❌ Aucun résultat trouvé.")
 
         posts_valides = []
@@ -991,8 +1021,8 @@ async def cailloux(interaction: discord.Interaction, personnage: Optional[str] =
             if not image_url:
                 continue
 
-            lower = image_url.lower()
-            if not any(ext in lower for ext in [".jpg", ".jpeg", ".png", ".webp"]):
+            lower_url = image_url.lower()
+            if not any(ext in lower_url for ext in [".jpg", ".jpeg", ".png", ".webp"]):
                 continue
 
             post_tags = set(post.get("tags", "").split())
@@ -1013,12 +1043,11 @@ async def cailloux(interaction: discord.Interaction, personnage: Optional[str] =
                 if not image_url:
                     continue
 
-                lower = image_url.lower()
-                if not any(ext in lower for ext in [".jpg", ".jpeg", ".png", ".webp"]):
+                lower_url = image_url.lower()
+                if not any(ext in lower_url for ext in [".jpg", ".jpeg", ".png", ".webp"]):
                     continue
 
                 post_tags = set(post.get("tags", "").split())
-
                 if post_tags & HOUSEKI_BLACKLIST:
                     continue
 
@@ -1034,30 +1063,28 @@ async def cailloux(interaction: discord.Interaction, personnage: Optional[str] =
         if len(LAST_HOUSEKI_IMAGES) > MAX_HOUSEKI_HISTORY:
             LAST_HOUSEKI_IMAGES.pop(0)
 
-        embed = discord.Embed(
-            title=titre,
-            color=discord.Color.teal()
-        )
-
+        embed = discord.Embed(title=titre, color=discord.Color.teal())
         embed.set_image(url=image_url)
 
-        if post.get("id"):
+        post_id = post.get("id")
+        if post_id:
             embed.add_field(
                 name="Source",
-                value=f"https://safebooru.org/index.php?page=post&s=view&id={post['id']}",
+                value=f"https://safebooru.org/index.php?page=post&s=view&id={post_id}",
                 inline=False
             )
 
         await interaction.followup.send(embed=embed)
 
     except Exception as e:
-        print(f"[cailloux error] {type(e).__name__}: {e}")
+        print(f"[cailloux error] {type(e).__name__}: {e}", flush=True)
         await interaction.followup.send(f"❌ Erreur API : {type(e).__name__}")
 
 
 # Renommé en minuscule : Discord impose que les noms de slash commands
 # soient entièrement en minuscules ("Nahidwin" -> "nahidwin").
 @bot.tree.command(name="nahidwin", description="Envoie une image Nah I'd win au hasard.")
+@fun_role_or_admin()
 async def nahidwin(interaction: discord.Interaction):
     folder = "images"
     try:
@@ -1100,6 +1127,7 @@ async def help_command(interaction: discord.Interaction):
     e.add_field(name="📢 Shame", value="Clic droit sur un message → Apps → Shame", inline=False)
     e.add_field(name="💖 /femboy", value="Envoie une image via l'API femboy", inline=False)
     e.add_field(name="🏇 /uma [personnage]", value="Envoie une image Umamusume. Ex : `/uma oguri`", inline=False)
+    e.add_field(name="💎 /cailloux [personnage]", value="Envoie une image Houseki no Kuni. Ex : `/cailloux phos`", inline=False)
     e.add_field(name="🎯 /insulte_random", value="Roast un membre au hasard", inline=False)
     e.add_field(name="🐈 /cat / 💢 /skillissue", value="Fun/Images", inline=False)
     e.add_field(name="🔫 /roulette membre1 membre2 ...", value="Mute un membre au hasard parmi les participants", inline=False)
