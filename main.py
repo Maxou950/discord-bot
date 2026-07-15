@@ -108,6 +108,38 @@ UMA_BLACKLIST = {
     "lineart"
 }
 
+LAST_HOUSEKI_IMAGES = []
+MAX_HOUSEKI_HISTORY = 40
+
+HOUSEKI_BASE_TAGS = "houseki_no_kuni"
+
+HOUSEKI_CHARACTER_TAGS = {
+    "phos": "phosphophyllite_(houseki_no_kuni)",
+    "cinnabar": "cinnabar_(houseki_no_kuni)",
+    "diamond": "diamond_(houseki_no_kuni)",
+    "bort": "bort_(houseki_no_kuni)",
+    "rutile": "rutile_(houseki_no_kuni)",
+    "antarcticite": "antarcticite_(houseki_no_kuni)",
+    "padpa": "padparadscha_(houseki_no_kuni)",
+    "ghost": "ghost_quartz_(houseki_no_kuni)",
+    "euclase": "euclase_(houseki_no_kuni)"
+}
+
+HOUSEKI_BLACKLIST = {
+    "comic",
+    "translated",
+    "greyscale",
+    "monochrome",
+    "text",
+    "speech_bubble",
+    "4koma",
+    "multiple_views",
+    "chibi",
+    "simple_background",
+    "sketch",
+    "lineart"
+}
+
 ALLOWED_INVITE_USERS = {
     1278501132771000320,  # Krakotte
     504958077305487371,   # Maxou
@@ -908,6 +940,118 @@ async def uma(interaction: discord.Interaction, personnage: Optional[str] = None
 
     except Exception as e:
         print(f"[uma error] {type(e).__name__}: {e}", flush=True)
+        await interaction.followup.send(f"❌ Erreur API : {type(e).__name__}")
+
+@bot.tree.command(name="cailloux", description="Envoie une image Houseki no Kuni.")
+@app_commands.describe(personnage="Ex : phos, cinnabar, diamond, bort...")
+@app_commands.checks.cooldown(1, 5.0)
+async def cailloux(interaction: discord.Interaction, personnage: Optional[str] = None):
+    await interaction.response.defer()
+
+    try:
+        if personnage:
+            personnage = personnage.lower().strip()
+
+        if personnage and personnage in HOUSEKI_CHARACTER_TAGS:
+            tags = f"{HOUSEKI_CHARACTER_TAGS[personnage]} {HOUSEKI_BASE_TAGS}"
+            titre = f"💎 Houseki no Kuni - {personnage.capitalize()}"
+        else:
+            tags = HOUSEKI_BASE_TAGS
+            titre = "💎 Houseki no Kuni"
+
+        url = "https://safebooru.org/index.php"
+
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                url,
+                params={
+                    "page": "dapi",
+                    "s": "post",
+                    "q": "index",
+                    "json": 1,
+                    "tags": tags,
+                    "limit": 100,
+                    "pid": random.randint(0, 30)
+                },
+                headers={"User-Agent": "HirashiBot/1.0"}
+            ) as response:
+
+                if response.status != 200:
+                    return await interaction.followup.send(f"❌ API indisponible ({response.status})")
+
+                data = await response.json(content_type=None)
+
+        if not data:
+            return await interaction.followup.send("❌ Aucun résultat trouvé.")
+
+        posts_valides = []
+
+        for post in data:
+            image_url = post.get("file_url") or post.get("large_file_url")
+            if not image_url:
+                continue
+
+            lower = image_url.lower()
+            if not any(ext in lower for ext in [".jpg", ".jpeg", ".png", ".webp"]):
+                continue
+
+            post_tags = set(post.get("tags", "").split())
+
+            if post_tags & HOUSEKI_BLACKLIST:
+                continue
+
+            if image_url in LAST_HOUSEKI_IMAGES:
+                continue
+
+            posts_valides.append(post)
+
+        if not posts_valides:
+            LAST_HOUSEKI_IMAGES.clear()
+
+            for post in data:
+                image_url = post.get("file_url") or post.get("large_file_url")
+                if not image_url:
+                    continue
+
+                lower = image_url.lower()
+                if not any(ext in lower for ext in [".jpg", ".jpeg", ".png", ".webp"]):
+                    continue
+
+                post_tags = set(post.get("tags", "").split())
+
+                if post_tags & HOUSEKI_BLACKLIST:
+                    continue
+
+                posts_valides.append(post)
+
+        if not posts_valides:
+            return await interaction.followup.send("❌ Aucune image valide trouvée.")
+
+        post = random.choice(posts_valides)
+        image_url = post.get("file_url") or post.get("large_file_url")
+
+        LAST_HOUSEKI_IMAGES.append(image_url)
+        if len(LAST_HOUSEKI_IMAGES) > MAX_HOUSEKI_HISTORY:
+            LAST_HOUSEKI_IMAGES.pop(0)
+
+        embed = discord.Embed(
+            title=titre,
+            color=discord.Color.teal()
+        )
+
+        embed.set_image(url=image_url)
+
+        if post.get("id"):
+            embed.add_field(
+                name="Source",
+                value=f"https://safebooru.org/index.php?page=post&s=view&id={post['id']}",
+                inline=False
+            )
+
+        await interaction.followup.send(embed=embed)
+
+    except Exception as e:
+        print(f"[cailloux error] {type(e).__name__}: {e}")
         await interaction.followup.send(f"❌ Erreur API : {type(e).__name__}")
 
 
