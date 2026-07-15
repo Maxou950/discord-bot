@@ -5,6 +5,7 @@ import asyncio
 import io
 import textwrap
 import re
+import json
 import discord
 import aiohttp
 from typing import Optional
@@ -47,13 +48,109 @@ BLACKLIST_USERS = {
 
 WARN_COUNTS = {}
 
+DATA_FOLDER = "data"
+DATA_FILE = os.path.join(DATA_FOLDER, "bot_data.json")
+
+
+def load_persistent_data():
+    """Charge les warns et la blacklist depuis un fichier JSON."""
+    global WARN_COUNTS, BLACKLIST_USERS
+
+    try:
+        os.makedirs(DATA_FOLDER, exist_ok=True)
+
+        if not os.path.isfile(DATA_FILE):
+            return
+
+        with open(DATA_FILE, "r", encoding="utf-8") as file:
+            data = json.load(file)
+
+        WARN_COUNTS = {
+            int(user_id): int(count)
+            for user_id, count in data.get("warn_counts", {}).items()
+        }
+
+        BLACKLIST_USERS = {
+            int(user_id)
+            for user_id in data.get("blacklist_users", [])
+        }
+
+    except Exception as error:
+        print(f"[data load error] {type(error).__name__}: {error}")
+
+
+def save_persistent_data():
+    """Enregistre les warns et la blacklist dans un fichier JSON."""
+    try:
+        os.makedirs(DATA_FOLDER, exist_ok=True)
+
+        data = {
+            "warn_counts": {
+                str(user_id): count
+                for user_id, count in WARN_COUNTS.items()
+            },
+            "blacklist_users": sorted(BLACKLIST_USERS),
+        }
+
+        temporary_file = DATA_FILE + ".tmp"
+
+        with open(temporary_file, "w", encoding="utf-8") as file:
+            json.dump(data, file, ensure_ascii=False, indent=2)
+
+        os.replace(temporary_file, DATA_FILE)
+
+    except Exception as error:
+        print(f"[data save error] {type(error).__name__}: {error}")
+
+
+load_persistent_data()
+
 intents = discord.Intents.default()
 intents.messages = True
 intents.guilds = True
 intents.members = True
 intents.message_content = True
 
-bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
+class HirashiBot(commands.Bot):
+    def __init__(self):
+        super().__init__(
+            command_prefix="!",
+            intents=intents,
+            help_command=None
+        )
+        self.http_session: Optional[aiohttp.ClientSession] = None
+
+    async def setup_hook(self):
+        self.http_session = aiohttp.ClientSession(
+            timeout=aiohttp.ClientTimeout(total=15)
+        )
+
+        try:
+            if TEST_GUILD_ID:
+                guild_obj = discord.Object(id=TEST_GUILD_ID)
+                self.tree.copy_global_to(guild=guild_obj)
+                synced = await self.tree.sync(guild=guild_obj)
+                print(
+                    f"📜 {len(synced)} commandes synchronisées "
+                    f"sur le serveur de test {TEST_GUILD_ID}"
+                )
+            else:
+                synced = await self.tree.sync()
+                print(
+                    f"📜 {len(synced)} commandes synchronisées globalement "
+                    "(peut prendre jusqu'à 1h à apparaître)"
+                )
+        except Exception as error:
+            print(f"[sync error] {type(error).__name__}: {error}")
+
+    async def close(self):
+        if self.http_session and not self.http_session.closed:
+            await self.http_session.close()
+
+        await super().close()
+
+
+bot = HirashiBot()
 
 user_message_count = {}
 spam_threshold = 5
@@ -186,6 +283,59 @@ def fun_role_or_admin():
 
     return app_commands.check(predicate)
 
+
+
+async def download_bytes(url: str, max_size: int = 8 * 1024 * 1024) -> bytes:
+    """Télécharge un fichier avec la session HTTP partagée."""
+    if not bot.http_session or bot.http_session.closed:
+        raise RuntimeError("La session HTTP du bot n'est pas disponible.")
+
+    async with bot.http_session.get(
+        url,
+        headers={"User-Agent": "HirashiBot/1.0"}
+    ) as response:
+        response.raise_for_status()
+
+        content_length = response.headers.get("Content-Length")
+        if content_length and int(content_length) > max_size:
+            raise ValueError("Le fichier distant est trop volumineux.")
+
+        data = await response.read()
+
+        if len(data) > max_size:
+            raise ValueError("Le fichier distant est trop volumineux.")
+
+        return data
+
+
+async def fetch_safebooru_posts(tags: str, pid: int) -> list:
+    """Récupère une page de résultats Safebooru."""
+    if not bot.http_session or bot.http_session.closed:
+        raise RuntimeError("La session HTTP du bot n'est pas disponible.")
+
+    async with bot.http_session.get(
+        "https://safebooru.org/index.php",
+        params={
+            "page": "dapi",
+            "s": "post",
+            "q": "index",
+            "json": 1,
+            "tags": tags,
+            "limit": 100,
+            "pid": pid,
+        },
+        headers={"User-Agent": "HirashiBot/1.0"}
+    ) as response:
+        if response.status != 200:
+            body = await response.text()
+            print(
+                f"[safebooru] status={response.status} body={body[:300]}",
+                flush=True
+            )
+            return []
+
+        data = await response.json(content_type=None)
+        return data if isinstance(data, list) else []
 
 
 # ---------------------------------------------------------------------------
@@ -488,14 +638,15 @@ async def on_message(message: discord.Message):
     uid = message.author.id
     now = asyncio.get_running_loop().time()
 
-    user_message_count.setdefault(uid, []).append(now)
-    user_message_count[uid] = [
+    recent_messages = [
         timestamp
-        for timestamp in user_message_count[uid]
+        for timestamp in user_message_count.get(uid, [])
         if now - timestamp < interval
     ]
+    recent_messages.append(now)
+    user_message_count[uid] = recent_messages
 
-    if len(user_message_count[uid]) > spam_threshold:
+    if len(recent_messages) > spam_threshold:
         try:
             await message.author.timeout(
                 timedelta(seconds=60),
@@ -507,6 +658,7 @@ async def on_message(message: discord.Message):
                 color=discord.Color.red()
             )
             await message.channel.send(embed=embed)
+            user_message_count.pop(uid, None)
 
         except Exception as error:
             print(f"[timeout error] {error}")
@@ -621,6 +773,7 @@ async def unwarn(interaction: discord.Interaction, membre: discord.Member):
         )
 
     WARN_COUNTS[user_id] -= 1
+    save_persistent_data()
 
     embed = discord.Embed(
         title="♻️ Warn retiré",
@@ -652,6 +805,7 @@ async def warn(interaction: discord.Interaction, membre: discord.Member, raison:
     user_id = membre.id
     WARN_COUNTS[user_id] = WARN_COUNTS.get(user_id, 0) + 1
     nb_warns = WARN_COUNTS[user_id]
+    save_persistent_data()
 
     try:
         dm_embed = discord.Embed(
@@ -687,6 +841,7 @@ async def warn(interaction: discord.Interaction, membre: discord.Member, raison:
         try:
             await membre.kick(reason=f"Atteint 3 warns (dernier warn par {interaction.user})")
             WARN_COUNTS.pop(user_id, None)
+            save_persistent_data()
 
             kick_embed = discord.Embed(
                 title="🔨 Auto-kick",
@@ -767,7 +922,11 @@ async def clear_user(interaction: discord.Interaction, membre: discord.Member, n
     def check(m):
         return m.author == membre
 
-    deleted = await interaction.channel.purge(limit=100, check=check)
+    nombre = max(1, min(nombre, 500))
+    deleted = await interaction.channel.purge(
+        limit=nombre,
+        check=check
+    )
     embed = discord.Embed(
         description=f"🧹 {len(deleted)} messages supprimés de {membre.mention}.",
         color=discord.Color.dark_gold()
@@ -807,6 +966,7 @@ async def unmute(interaction: discord.Interaction, membre: discord.Member):
 @app_commands.checks.has_permissions(administrator=True)
 async def add_blacklist(interaction: discord.Interaction, membre: discord.Member):
     BLACKLIST_USERS.add(membre.id)
+    save_persistent_data()
     await interaction.response.send_message(f"🚫 {membre.mention} a été **ajouté** à la blacklist (anti-join).")
 
 
@@ -814,6 +974,7 @@ async def add_blacklist(interaction: discord.Interaction, membre: discord.Member
 @app_commands.checks.has_permissions(administrator=True)
 async def remove_blacklist(interaction: discord.Interaction, membre: discord.Member):
     BLACKLIST_USERS.discard(membre.id)
+    save_persistent_data()
     await interaction.response.send_message(f"✅ {membre.mention} a été **retiré** de la blacklist (anti-join).")
 
 
@@ -1043,38 +1204,15 @@ async def femboy(interaction: discord.Interaction):
     await interaction.response.defer()
 
     try:
-        url = "https://safebooru.org/index.php"
         all_posts = []
 
-        async with aiohttp.ClientSession() as session:
-            for _ in range(3):
-                tags = random.choice(FEMBOY_TAGS)
-
-                async with session.get(
-                    url,
-                    params={
-                        "page": "dapi",
-                        "s": "post",
-                        "q": "index",
-                        "json": 1,
-                        "tags": tags,
-                        "limit": 100,
-                        "pid": random.randint(0, 30)
-                    },
-                    headers={"User-Agent": "HirashiBot/1.0"}
-                ) as response:
-
-                    print(f"[femboy] tags={tags} status={response.status}", flush=True)
-
-                    if response.status != 200:
-                        text = await response.text()
-                        print(f"[femboy] body={text[:300]}", flush=True)
-                        continue
-
-                    data = await response.json(content_type=None)
-
-                    if isinstance(data, list):
-                        all_posts.extend(data)
+        for _ in range(3):
+            tags = random.choice(FEMBOY_TAGS)
+            posts = await fetch_safebooru_posts(
+                tags=tags,
+                pid=random.randint(0, 30)
+            )
+            all_posts.extend(posts)
 
         if not all_posts:
             return await interaction.followup.send("❌ Aucun résultat trouvé.")
@@ -1186,32 +1324,10 @@ async def uma(interaction: discord.Interaction, personnage: Optional[str] = None
             tags = UMA_BASE_TAGS
             titre = "🏇 Uma Musume"
 
-        url = "https://safebooru.org/index.php"
-
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                url,
-                params={
-                    "page": "dapi",
-                    "s": "post",
-                    "q": "index",
-                    "json": 1,
-                    "tags": tags,
-                    "limit": 100,
-                    "pid": random.randint(0, 30)
-                },
-                headers={"User-Agent": "HirashiBot/1.0"}
-            ) as response:
-
-                print(f"[uma] tags = {tags}", flush=True)
-                print(f"[uma] status = {response.status}", flush=True)
-
-                if response.status != 200:
-                    text = await response.text()
-                    print(f"[uma] body = {text[:300]}", flush=True)
-                    return await interaction.followup.send(f"❌ API indisponible ({response.status})")
-
-                data = await response.json(content_type=None)
+        data = await fetch_safebooru_posts(
+            tags=tags,
+            pid=random.randint(0, 30)
+        )
 
         if not data:
             if personnage and personnage not in UMA_CHARACTER_TAGS:
@@ -1307,31 +1423,10 @@ async def cailloux(interaction: discord.Interaction, personnage: Optional[str] =
             tags = HOUSEKI_BASE_TAGS
             titre = "💎 Houseki no Kuni"
 
-        url = "https://safebooru.org/index.php"
-
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                url,
-                params={
-                    "page": "dapi",
-                    "s": "post",
-                    "q": "index",
-                    "json": 1,
-                    "tags": tags,
-                    "limit": 100,
-                    "pid": random.randint(0, 30)
-                },
-                headers={"User-Agent": "HirashiBot/1.0"}
-            ) as response:
-
-                print(f"[cailloux] tags={tags} status={response.status}", flush=True)
-
-                if response.status != 200:
-                    return await interaction.followup.send(
-                        f"❌ API indisponible ({response.status})"
-                    )
-
-                data = await response.json(content_type=None)
+        data = await fetch_safebooru_posts(
+            tags=tags,
+            pid=random.randint(0, 30)
+        )
 
         if not data:
             if personnage and personnage not in HOUSEKI_CHARACTER_TAGS:
@@ -1560,27 +1655,18 @@ async def help_command(interaction: discord.Interaction):
 
 @bot.event
 async def on_ready():
-    print(f"✅ Connecté en tant que {bot.user.name}")
-
-    try:
-        if TEST_GUILD_ID:
-            guild_obj = discord.Object(id=TEST_GUILD_ID)
-            bot.tree.copy_global_to(guild=guild_obj)
-            synced = await bot.tree.sync(guild=guild_obj)
-            print(f"📜 {len(synced)} commandes synchronisées sur le serveur de test {TEST_GUILD_ID}")
-        else:
-            synced = await bot.tree.sync()
-            print(f"📜 {len(synced)} commandes synchronisées globalement (peut prendre jusqu'à 1h à apparaître)")
-    except Exception as e:
-        print(f"[sync error] {e}")
+    print(f"✅ Connecté en tant que {bot.user}")
 
     activity = discord.Game("Jerkmate | Ranked")
-    await bot.change_presence(status=discord.Status.online, activity=activity)
+    await bot.change_presence(
+        status=discord.Status.online,
+        activity=activity
+    )
 
 
-while True:
-    try:
-        bot.run(TOKEN)
-    except Exception as e:
-        print(f"[CRASH] {e}\nRedémarrage dans 5s...")
-        time.sleep(5)
+if not TOKEN:
+    raise RuntimeError(
+        "La variable d'environnement TOKEN est absente ou vide."
+    )
+
+bot.run(TOKEN)
