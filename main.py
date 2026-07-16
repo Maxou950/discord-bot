@@ -524,7 +524,8 @@ def create_dialogue_image(
 
 
 # ---------------------------------------------------------------------------
-# Conversion automatique des liens sociaux pour les embeds Discord
+# Conversion automatique de certains liens sociaux pour les embeds Discord
+# TikTok est volontairement exclu
 # ---------------------------------------------------------------------------
 
 SOCIAL_DOMAIN_REPLACEMENTS = {
@@ -534,11 +535,6 @@ SOCIAL_DOMAIN_REPLACEMENTS = {
     "x.com": "fixupx.com",
     "www.x.com": "fixupx.com",
     "mobile.x.com": "fixupx.com",
-    "tiktok.com": "vxtiktok.com",
-    "www.tiktok.com": "vxtiktok.com",
-    "m.tiktok.com": "vxtiktok.com",
-    "vm.tiktok.com": "vxtiktok.com",
-    "vt.tiktok.com": "vxtiktok.com",
     "instagram.com": "ddinstagram.com",
     "www.instagram.com": "ddinstagram.com",
     "bsky.app": "fxbsky.app",
